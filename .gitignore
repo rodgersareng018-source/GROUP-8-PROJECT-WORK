@@ -1,4 +1,8 @@
-# Prerequisites
+# P# VS Code personal settings
+.vscode/
+
+# CMake build files
+build/rerequisites
 *.d
 
 # Compiled Object files
