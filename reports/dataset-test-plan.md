@@ -15,3 +15,5 @@ To verify that EduSVM accepts valid students data and rejects invalid data
 # Expected Results
 The validation function should return true for valid data and false for invalid data, with an explanatory error message.
 
+# Week 1 status
+This section was updated when the tests for this weeks' work  are completed and remaining work for the week is done.
