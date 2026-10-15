@@ -14,7 +14,7 @@ Before you begin, make sure you have the following installed on your windows mac
    '''bash
    git clone http:github.com
    cd GROUP-8-PROJECT-WORK
-   '''s
+   '''
 
 2. **Generate and build files using CMake**
 
