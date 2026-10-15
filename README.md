@@ -11,9 +11,8 @@ Before you begin, make sure you have the following installed on your windows mac
 ### Installation setup
 1. **Clone the repository**
    Open your Git bash or command prompt and run:
-   '''bash
-   git clone http:github.com
-   cd GROUP-8-PROJECT-WORK
+   '''bash 
+   git clone http:github.com cd GROUP-8-PROJECT-WORK 
    '''
 
 2. **Generate and build files using CMake**
