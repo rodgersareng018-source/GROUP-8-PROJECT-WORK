@@ -1,35 +1,28 @@
-#include "edusvm/svm.hpp"
-#include <cassert>
-#include <cmath>
-#include <iostream>
+#include "svm.hpp"
+#include <string>
 
 int main() {
     std::string error;
-    edusvm::Hyperplane model;
-    model.weights = {2.0, 1.0};
-    model.bias = -3.0;
-    
-    double result = 0.0;
-    
+
     // Test 1: Correct score
-    // Score = 2*2 + 1*1 - 3 = 2
+    edusvm::Hyperplane model{{2.0, 1.0}, -3.0};
+    double result = 0.0;
     assert(edusvm::decisionFunction(model, {2.0, 1.0}, result, error));
     assert(std::abs(result - 2.0) < 1e-9);
-    
-    // Test 2: Mismatched feature count
-    assert(!edusvm::decisionFunction(model, {2.0}, result, error));
+
+    // Test 2: Mismatched feature count must be rejected
+    edusvm::Hyperplane badModel{{2.0}, 0.0};
+    assert(!edusvm::decisionFunction(badModel, {2.0, 1.0}, result, error));
     assert(!error.empty());
-    
-    // Test 3: Invalid label
+
+    // Test 3: Invalid label must be rejected
     double margin = 0.0;
     assert(!edusvm::calculateFunctionalMargin(model, {2.0, 1.0}, 0, margin, error));
     assert(!error.empty());
-    
-    // Test 4: Valid functional margin
-    // Margin = 1 * 2 = 2
+
+    // Test 4: Functional margin with valid label
     assert(edusvm::calculateFunctionalMargin(model, {2.0, 1.0}, 1, margin, error));
     assert(std::abs(margin - 2.0) < 1e-9);
-    
-    std::cout << "SVM tests passed.\n";
+
     return 0;
 }
