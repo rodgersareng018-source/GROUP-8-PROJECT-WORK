@@ -1,6 +1,4 @@
-#include "edusvm/svm.hpp"
-#include <cassert>
-#include <cmath>
+#include "svm.hpp"
 #include <string>
 
 int main() {
