@@ -1,4 +1,5 @@
 
+
 cmake_minimum_required(VERSION 3.16)
 
 project(EduSVM LANGUAGES CXX)
@@ -7,11 +8,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Build all currently integrated EduSVM modules.
+# Build the EduSVM library.
 add_library(edusvm
     src/dataset.cpp
     src/preprocessor.cpp
+    src/scaler.cpp
     src/svm.cpp
+    src/loss.cpp
+    src/regularization.cpp
 )
 
 # Make public headers available to the library and its users.
@@ -22,30 +26,27 @@ target_include_directories(edusvm
 # Enable automated testing.
 enable_testing()
 
-# Basic dataset tests.
-add_executable(test_dataset_basic
-    tests/test_dataset_basic.cpp
-)
-target_link_libraries(test_dataset_basic PRIVATE edusvm)
-add_test(NAME DatasetBasic COMMAND test_dataset_basic)
+function(add_edusvm_test test_name test_file)
+    add_executable(${test_name} ${test_file})
+    target_link_libraries(${test_name} PRIVATE edusvm)
+    add_test(NAME ${test_name} COMMAND ${test_name})
+endfunction()
 
-# Dataset edge-case tests.
-add_executable(test_dataset_edges
-    tests/test_dataset_edges.cpp
-)
-target_link_libraries(test_dataset_edges PRIVATE edusvm)
-add_test(NAME DatasetEdges COMMAND test_dataset_edges)
+# Dataset tests.
+add_edusvm_test(test_dataset_basic tests/test_dataset_basic.cpp)
+add_edusvm_test(test_dataset_edges tests/test_dataset_edges.cpp)
 
-# Preprocessor tests.
-add_executable(test_preprocessor
-    tests/test_preprocessor.cpp
-)
-target_link_libraries(test_preprocessor PRIVATE edusvm)
-add_test(NAME Preprocessor COMMAND test_preprocessor)
+# Module tests.
+add_edusvm_test(test_preprocessor tests/test_preprocessor.cpp)
+add_edusvm_test(test_scaler tests/test_scaler.cpp)
+add_edusvm_test(test_svm tests/test_svm.cpp)
+add_edusvm_test(test_loss tests/test_loss.cpp)
+add_edusvm_test(test_regularization tests/test_regularization.cpp)
 
-# SVM tests.
-add_executable(test_svm
-    tests/test_svm.cpp
+# Integration example.
+add_executable(example_calculations
+    examples/example_calculations.cpp
 )
-target_link_libraries(test_svm PRIVATE edusvm)
-add_test(NAME SVM COMMAND test_svm)
+
+target_link_libraries(example_calculations PRIVATE edusvm)
+
