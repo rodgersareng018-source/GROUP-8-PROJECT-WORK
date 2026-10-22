@@ -1,5 +1,6 @@
-#include "svm.hpp"
+#include <cassert>
 #include <string>
+#include "edusvm/svm.hpp"
 
 int main() {
     std::string error;
