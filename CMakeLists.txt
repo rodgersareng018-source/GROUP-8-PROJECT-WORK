@@ -1,5 +1,3 @@
-
-
 cmake_minimum_required(VERSION 3.16)
 
 project(EduSVM LANGUAGES CXX)
@@ -8,45 +6,45 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Build the EduSVM library.
-add_library(edusvm
-    src/dataset.cpp
-    src/preprocessor.cpp
-    src/scaler.cpp
-    src/svm.cpp
-    src/loss.cpp
-    src/regularization.cpp
+file(GLOB EDUSVM_SOURCES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/*.cpp"
 )
 
-# Make public headers available to the library and its users.
+if(NOT EDUSVM_SOURCES)
+    message(FATAL_ERROR "No C++ source files found in src/")
+endif()
+
+add_library(edusvm ${EDUSVM_SOURCES})
+
 target_include_directories(edusvm
-    PUBLIC ${PROJECT_SOURCE_DIR}/include
+    PUBLIC "${PROJECT_SOURCE_DIR}/include"
 )
 
-# Enable automated testing.
 enable_testing()
 
-function(add_edusvm_test test_name test_file)
-    add_executable(${test_name} ${test_file})
-    target_link_libraries(${test_name} PRIVATE edusvm)
-    add_test(NAME ${test_name} COMMAND ${test_name})
-endfunction()
-
-# Dataset tests.
-add_edusvm_test(test_dataset_basic tests/test_dataset_basic.cpp)
-add_edusvm_test(test_dataset_edges tests/test_dataset_edges.cpp)
-
-# Module tests.
-add_edusvm_test(test_preprocessor tests/test_preprocessor.cpp)
-add_edusvm_test(test_scaler tests/test_scaler.cpp)
-add_edusvm_test(test_svm tests/test_svm.cpp)
-add_edusvm_test(test_loss tests/test_loss.cpp)
-add_edusvm_test(test_regularization tests/test_regularization.cpp)
-
-# Integration example.
-add_executable(example_calculations
-    examples/example_calculations.cpp
+file(GLOB EDUSVM_TEST_FILES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/tests/test_*.cpp"
 )
 
-target_link_libraries(example_calculations PRIVATE edusvm)
+foreach(TEST_FILE IN LISTS EDUSVM_TEST_FILES)
+    get_filename_component(TEST_NAME "${TEST_FILE}" NAME_WE)
 
+    add_executable("${TEST_NAME}" "${TEST_FILE}")
+    target_link_libraries("${TEST_NAME}" PRIVATE edusvm)
+
+    add_test(
+        NAME "${TEST_NAME}"
+        COMMAND "${TEST_NAME}"
+    )
+endforeach()
+
+file(GLOB EDUSVM_EXAMPLES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/examples/*.cpp"
+)
+
+foreach(EXAMPLE_FILE IN LISTS EDUSVM_EXAMPLES)
+    get_filename_component(EXAMPLE_NAME "${EXAMPLE_FILE}" NAME_WE)
+
+    add_executable("${EXAMPLE_NAME}" "${EXAMPLE_FILE}")
+    target_link_libraries("${EXAMPLE_NAME}" PRIVATE edusvm)
+endforeach()
