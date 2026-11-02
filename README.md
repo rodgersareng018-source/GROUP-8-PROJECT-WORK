@@ -3,7 +3,7 @@ C++ educational Support Vector Machine project developed by a group of eight mem
 
 ## EduSVM: Educational Support Vector Machine
 
-A beginner-friendly, modular Support Vector Machine (SVM) C++ library designed to predict student performance metrics. This project is built collaboratively as a team to demonstrate clean software engineering principles, class knowledge of object oriented programming, automated build testing, and mathematical optimization tracking.
+A beginner-friendly, modular Support Vector Machine (SVM) C++ library designed to predict student performance metrics basing on attendance, study hours, and assignment scores. This project is built collaboratively as a team to demonstrate clean software engineering principles, class knowledge of object oriented programming, automated build testing, and mathematical optimization tracking.
 
 ## Recommended Project structure
 
