@@ -2,18 +2,17 @@ WEEK 4 REPORT
 
 Project: EduSVM — Educational Support Vector Machine
 Group: Group 8
-Member: Monica Namagembe
-Member Number: 6
+Member:Namagembe Monica Tendo
 Role: Build and Integration
 Branch: "monica-branch"
 
-1. Introduction
+Introduction
 
 Week 4 marked the final integration phase of the EduSVM project. As Member 6, my responsibility was to review the root CMake build configuration, verify the inclusion of required source files, ensure that the example and tests could build, resolve build configuration issues, and perform build verification.
 
 The main objective was to ensure that the project could be configured, compiled, and tested successfully before final submission.
 
-2. Work Done
+Work Done
 
 During Week 4, I carried out the following activities:
 
@@ -26,7 +25,7 @@ During Week 4, I carried out the following activities:
 - Used CTest to identify and execute the registered tests.
 - Verified the results of the project's dataset, preprocessing, scaling, and SVM tests.
 
-3. Build Verification
+Build Verification
 
 The project was configured using:
 
@@ -61,7 +60,7 @@ Testing result:
 
 The successful test execution demonstrated that the tested dataset, preprocessing, scaling, and SVM components passed their registered tests.
 
-5. Challenges Encountered
+Challenges Encountered
 
 One of the major challenges was the initial CMake configuration attempting to use NMake, which was not recognized by the terminal.
 
@@ -71,7 +70,7 @@ To address this problem, I investigated the available compiler and build tools a
 
 This allowed the project to configure and compile successfully.
 
-6. How Week 4 Improved on Week 3
+How Week 4 Improved on Week 3
 
 Week 3 focused primarily on reviewing the CMake configuration and investigating build errors.
 
@@ -81,7 +80,7 @@ The build configuration was successfully tested using MinGW, and the registered 
 
 This provided evidence that the tested project targets could be compiled and that the registered tests passed.
 
-7. Use of AI
+Use of AI
 
 AI assistance was used to:
 
@@ -94,7 +93,7 @@ AI assistance was used to:
 
 The assistance improved my understanding of CMake, compiler configuration, and project integration.
 
-8. Conclusion
+Conclusion
 
 Week 4 completed the build verification activities for my assigned role in the EduSVM project.
 
