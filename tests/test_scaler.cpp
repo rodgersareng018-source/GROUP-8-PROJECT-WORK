@@ -89,7 +89,44 @@ static void testNonFiniteValue() {
     try { s.fit(d); } catch (const std::invalid_argument&) { threw = true; }
     CHECK(threw);
 }
+static void testMismatchedLabels() {
+    Dataset d;
+    d.features = {{1.0}, {2.0}};
+    d.labels = {1};
 
+    Scaler s;
+    bool threw = false;
+
+    try {
+        s.fit(d);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+
+    CHECK(threw);
+}
+static void testWrongFeatureCount() {
+    Dataset train;
+    train.features = {{1.0, 2.0}, {3.0, 4.0}};
+    train.labels = {1, -1};
+
+    Scaler s;
+    s.fit(train);
+
+    Dataset test;
+    test.features = {{5.0}};
+    test.labels = {1};
+
+    bool threw = false;
+
+    try {
+        s.transform(test);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+
+    CHECK(threw);
+}
 static void testTransformBeforeFit() {
     Dataset d;
     d.features = {{1.0}};
@@ -107,6 +144,8 @@ int main() {
     testEmptyInput();
     testInconsistentRows();
     testNonFiniteValue();
+    testMismatchedLabels();
+    testWrongFeatureCount();
     testTransformBeforeFit();
 
     if (failures == 0) {
