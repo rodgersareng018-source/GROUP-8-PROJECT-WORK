@@ -9,6 +9,9 @@ namespace edusvm {
 struct Dataset {
     std::vector<std::vector<double>> features;
     std::vector<int> labels;
+    bool empty() const {
+        return features.empty();
+    }
 };
 
 bool validateDataset(
