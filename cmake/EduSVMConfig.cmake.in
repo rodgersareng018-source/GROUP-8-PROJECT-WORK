@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+
+# Load the imported EduSVM::edusvm_lib target for downstream CMake projects.
+include("${CMAKE_CURRENT_LIST_DIR}/EduSVMTargets.cmake")

@@ -4,6 +4,7 @@
 
 namespace edusvm {
 
+// Penalize large model weights to discourage an overly complex boundary.
 bool calculateL2Regularization(
     const std::vector<double>& weights,
     double lambda,
@@ -15,6 +16,7 @@ bool calculateL2Regularization(
         return false;
     }
 
+    // Squaring each weight and summing gives the squared Euclidean norm.
     double sum = 0.0;
 
     for (double weight : weights) {
@@ -26,6 +28,7 @@ bool calculateL2Regularization(
         sum += weight * weight;
     }
 
+    // The one-half factor makes the derivative of this penalty lambda * weight.
     penalty = (lambda / 2.0) * sum;
 
     if (!std::isfinite(penalty)) {

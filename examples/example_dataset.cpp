@@ -1,11 +1,6 @@
 // examples/example_dataset.cpp
 
-// Small example showing how to build an edusvm::Dataset by hand and
-// validate it with edusvm::validateDataset.
-
-// NOTE: CSV loading is still unfinished in EduSVM. This example does NOT
-// call any CSV-loading function; the sample data is written directly in code.
-// Once a loader exists, replace buildSampleDataset() with a call to it.
+// Small example showing how to build a Dataset by hand and validate it.
 
 #include "edusvm/dataset.hpp"
 
@@ -17,6 +12,7 @@ namespace {
 // Each row is one student: {study hours per week, attendance percentage}.
 // Label +1 = passed, -1 = failed.
 edusvm::Dataset buildSampleDataset() {
+    // Construct a small rectangular table and assign one class per student.
     edusvm::Dataset dataset;
 
     dataset.features = {
@@ -48,6 +44,7 @@ void report(const std::string& name, const edusvm::Dataset& dataset) {
 } // namespace
 
 int main() {
+    // First show a valid example, then introduce one error at a time.
     // 1. A well-formed dataset.
     edusvm::Dataset good = buildSampleDataset();
     report("good dataset", good);

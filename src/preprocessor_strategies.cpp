@@ -2,8 +2,11 @@
 #include "edusvm/preprocessor_strategies.hpp"
 #include "edusvm/preprocessor.hpp"
 
+#include <stdexcept>
+
 namespace edusvm {
 
+// Adapt the standalone validation function to the common strategy interface.
 bool ValidationPreprocessor::process(
     const Dataset& input,
     Dataset& output,
@@ -12,6 +15,8 @@ bool ValidationPreprocessor::process(
     return preprocessDataset(input, output, errorMessage);
 }
 
+// Fit a scaler on this dataset and return a scaled copy; convert scaler
+// exceptions into the error-message convention used by Preprocessor.
 bool ScalingPreprocessor::process(
     const Dataset& input,
     Dataset& output,
@@ -23,7 +28,11 @@ bool ScalingPreprocessor::process(
         errorMessage.clear();
         return true;
     }
-    catch (const std::exception& error) {
+    catch (const std::invalid_argument& error) {
+        errorMessage = error.what();
+        return false;
+    }
+    catch (const std::logic_error& error) {
         errorMessage = error.what();
         return false;
     }

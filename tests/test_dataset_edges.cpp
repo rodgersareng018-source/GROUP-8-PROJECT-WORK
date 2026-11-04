@@ -7,6 +7,7 @@
 int main() {
     std::string error;
 
+    // Each example below isolates one invalid dataset condition.
     // A student with no features must be rejected.
     edusvm::Dataset noFeatures;
     noFeatures.features = {{}};

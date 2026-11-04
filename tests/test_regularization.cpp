@@ -1,5 +1,5 @@
 // tests/test_regularization.cpp
-// Penalty only; combining with hinge loss is a later integration step.
+// Verify the L2 penalty formula and its input validation.
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -9,6 +9,7 @@
 
 class RegularizationTest {
 public:
+    // Run all cases and return a process status for CTest.
     int run() {
         testKnownValue();
         testNegativeLambdaRejected();
@@ -18,6 +19,7 @@ public:
     }
 
 private:
+    // These weights give a known squared norm: 2^2 + 1^2 = 5.
     std::vector<double> weights_{2.0, 1.0};
     double penalty_ = 0.0;
     std::string error_;
@@ -31,6 +33,7 @@ private:
     }
 
     void testKnownValue() {
+        // lambda / 2 * sum(w^2) = 0.1 / 2 * 5 = 0.25.
         error_ = "stale";
         check(call(0.1, weights_), "valid input succeeds");
         check(std::fabs(penalty_ - 0.25) < 1e-9, "penalty is 0.05*(4+1) = 0.25");

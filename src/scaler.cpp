@@ -40,6 +40,7 @@ void validate(const Dataset& data, std::size_t expectedFeatures) {
 void Scaler::fit(const Dataset& data) {
     validate(data, 0);
 
+    // Initialize bounds from a real row, then expand them feature by feature.
     const std::size_t width = data.features[0].size();
     min_ = data.features[0];
     max_ = data.features[0];
@@ -59,9 +60,12 @@ Dataset Scaler::transform(const Dataset& data) const {
     }
     validate(data, min_.size());
 
-    Dataset result = data;  // keeps the labels and the row count
+    // Copy first so scaling never mutates the caller's original dataset.
+    Dataset result = data;
     for (auto& row : result.features) {
         for (std::size_t j = 0; j < row.size(); ++j) {
+            // A constant column has no range; map it to zero instead of
+            // dividing by zero.
             const double range = max_[j] - min_[j];
             row[j] = (range == 0.0) ? 0.0 : (row[j] - min_[j]) / range;
         }

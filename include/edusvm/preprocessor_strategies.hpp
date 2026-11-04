@@ -7,6 +7,7 @@
 
 namespace edusvm {
 
+// A strategy that checks dataset structure and values without changing them.
 class ValidationPreprocessor final : public Preprocessor {
 public:
     ValidationPreprocessor()
@@ -19,6 +20,7 @@ public:
     ) const override;
 };
 
+// A strategy that scales feature columns while preserving the labels.
 class ScalingPreprocessor final : public Preprocessor {
 public:
     ScalingPreprocessor()

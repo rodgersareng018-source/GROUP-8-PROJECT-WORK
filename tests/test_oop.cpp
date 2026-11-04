@@ -8,6 +8,7 @@
 #include "edusvm/preprocessor_strategies.hpp"
 
 int main() {
+    // Provide two features per student and labels that exercise both classes.
     edusvm::Dataset data;
 
     data.features = {
@@ -22,11 +23,12 @@ int main() {
     edusvm::ValidationPreprocessor validation;
     edusvm::ScalingPreprocessor scaling;
 
-    // Test encapsulated names.
+    // Confirm each concrete strategy keeps the name passed to its base class.
     assert(validation.getName() == "Dataset Validation");
     assert(scaling.getName() == "Feature Scaling");
 
-    // Test polymorphism through base-class pointers.
+    // Store both strategies through their common interface to demonstrate
+    // runtime polymorphism.
     const edusvm::Preprocessor* processors[] = {
         &validation,
         &scaling
@@ -35,12 +37,12 @@ int main() {
     edusvm::Dataset output;
     std::string errorMessage;
 
-    // Test validation preprocessing.
+    // Validation copies good data without changing feature values or labels.
     assert(processors[0]->process(data, output, errorMessage));
     assert(output.features == data.features);
     assert(output.labels == data.labels);
 
-    // Test feature scaling.
+    // Scaling maps the minimum of each column to 0 and the maximum to 1.
     assert(processors[1]->process(data, output, errorMessage));
 
     assert(std::abs(output.features[0][0] - 0.0) < 1e-9);
