@@ -4,7 +4,7 @@
 #include "edusvm/preprocessor_strategies.hpp"
 
 int main() {
-    // Sample student dataset
+    // A small dataset containing two numeric features per student.
     edusvm::Dataset data;
 
     data.features = {
@@ -16,16 +16,17 @@ int main() {
 
     data.labels = {-1, -1, 1, 1};
 
-    // Create objects of the derived classes
+    // Each concrete class implements one operation from the Preprocessor API.
     edusvm::ValidationPreprocessor validation;
     edusvm::ScalingPreprocessor scaling;
 
-    // Base-class pointers demonstrate polymorphism
+    // Base-class pointers let the same loop invoke different implementations.
     const edusvm::Preprocessor* processors[] = {
         &validation,
         &scaling
     };
 
+    // Run each processing strategy and display either output or its error.
     for (const auto* processor : processors) {
         edusvm::Dataset output;
         std::string errorMessage;

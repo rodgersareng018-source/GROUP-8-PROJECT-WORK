@@ -10,6 +10,7 @@ using edusvm::Scaler;
 
 static int failures = 0;
 
+// Keep floating-point comparisons tolerant of tiny rounding differences.
 #define CHECK(condition)                                              \
     do {                                                              \
         if (!(condition)) {                                           \
@@ -21,6 +22,7 @@ static int failures = 0;
 
 static bool near(double a, double b) { return std::fabs(a - b) < 1e-9; }
 
+// Check that each feature column is independently mapped into [0, 1].
 static void testOrdinaryValues() {
     Dataset d;
     d.features = {{10.0, 0.0}, {20.0, 50.0}, {30.0, 100.0}};
@@ -37,6 +39,7 @@ static void testOrdinaryValues() {
     CHECK(out.labels == d.labels);
 }
 
+// A constant column has a zero range and is defined to scale to all zeros.
 static void testConstantFeature() {
     Dataset d;
     d.features = {{5.0, 1.0}, {5.0, 2.0}};
@@ -50,6 +53,7 @@ static void testConstantFeature() {
     CHECK(near(out.features[1][1], 1.0));
 }
 
+// transform() must reuse min/max learned from training, not refit on new rows.
 static void testSameParametersOnNewData() {
     Dataset train;
     train.features = {{0.0}, {10.0}};
@@ -63,6 +67,7 @@ static void testSameParametersOnNewData() {
     CHECK(near(s.transform(fresh).features[0][0], 0.5));
 }
 
+// Fitting requires at least one valid row.
 static void testEmptyInput() {
     Scaler s;
     bool threw = false;
@@ -70,6 +75,7 @@ static void testEmptyInput() {
     CHECK(threw);
 }
 
+// The scaler cannot compare columns when rows have different widths.
 static void testInconsistentRows() {
     Dataset d;
     d.features = {{1.0, 2.0}, {3.0}};
@@ -80,6 +86,7 @@ static void testInconsistentRows() {
     CHECK(threw);
 }
 
+// Non-finite measurements cannot define reliable min/max bounds.
 static void testNonFiniteValue() {
     Dataset d;
     d.features = {{1.0}, {std::numeric_limits<double>::quiet_NaN()}};
@@ -105,6 +112,7 @@ static void testMismatchedLabels() {
 
     CHECK(threw);
 }
+// Transforming requires the same number of columns used during fit().
 static void testWrongFeatureCount() {
     Dataset train;
     train.features = {{1.0, 2.0}, {3.0, 4.0}};
@@ -127,6 +135,7 @@ static void testWrongFeatureCount() {
 
     CHECK(threw);
 }
+// The scaler has no bounds to apply until fit() has been called.
 static void testTransformBeforeFit() {
     Dataset d;
     d.features = {{1.0}};
@@ -138,6 +147,7 @@ static void testTransformBeforeFit() {
 }
 
 int main() {
+    // Run normal behavior and error-path checks.
     testOrdinaryValues();
     testConstantFeature();
     testSameParametersOnNewData();

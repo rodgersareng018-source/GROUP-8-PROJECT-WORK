@@ -7,6 +7,7 @@
 
 namespace edusvm {
 
+// One feature row and one binary label correspond to each student.
 struct Dataset {
     std::vector<std::vector<double>> features;
     std::vector<int> labels;
@@ -30,6 +31,13 @@ public:
 
 bool validateDataset(
     const Dataset& dataset,
+    std::string& errorMessage
+);
+
+// Read a CSV whose final column is named "label"; replace dataset only on success.
+bool loadDatasetCsv(
+    const std::string& filePath,
+    Dataset& dataset,
     std::string& errorMessage
 );
 

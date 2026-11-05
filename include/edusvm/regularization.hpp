@@ -6,6 +6,7 @@
 
 namespace edusvm {
 
+// Compute the L2 weight penalty: lambda / 2 times the sum of squared weights.
 bool calculateL2Regularization(
     const std::vector<double>& weights,
     double lambda,

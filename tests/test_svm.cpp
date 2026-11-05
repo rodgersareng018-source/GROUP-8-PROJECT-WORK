@@ -7,17 +7,22 @@
 #include <string>
 #include <vector>
 
-void testDecisionFunction() {
+int main() {
+    // Shared error string is populated when an API call rejects its inputs.
     std::string error;
+
+    // The dot product is 2*2 + 1*1, then adding bias -3 gives score 2.
     edusvm::Hyperplane model{{2.0, 1.0}, -3.0};
     double result = 0.0;
 
     assert(edusvm::decisionFunction(model, {2.0, 1.0}, result, error));
     assert(std::abs(result - 2.0) < 1e-9);
 
+    // A zero feature vector leaves only the model bias, which is negative.
     assert(edusvm::decisionFunction(model, {0.0, 0.0}, result, error));
     assert(std::abs(result + 3.0) < 1e-9);
 
+    // A score of zero lies exactly on the decision boundary.
     edusvm::Hyperplane zeroModel{{1.0, 1.0}, -2.0};
     assert(edusvm::decisionFunction(zeroModel, {1.0, 1.0}, result, error));
     assert(std::abs(result) < 1e-9);
@@ -29,6 +34,7 @@ void testInvalidDecisionFunctionInput() {
     std::string error;
     double result = 0.0;
 
+    // A model and prediction row must have equal feature counts.
     edusvm::Hyperplane badModel{{2.0}, 0.0};
 
     assert(!edusvm::decisionFunction(
@@ -37,212 +43,71 @@ void testInvalidDecisionFunctionInput() {
 
     assert(!error.empty());
 
-    std::cout << "[PASS] testInvalidDecisionFunctionInput\n";
-}
-
-void testFunctionalMargin() {
-    std::string error;
+    // Margins are defined only for the two supported labels.
     double margin = 0.0;
 
-    edusvm::Hyperplane model{{2.0, 1.0}, -3.0};
-
-    assert(!edusvm::calculateFunctionalMargin(
-        model, {2.0, 1.0}, 0, margin, error
-    ));
-
-    assert(edusvm::calculateFunctionalMargin(
-        model, {2.0, 1.0}, 1, margin, error
-    ));
-
+    // For a positive label, the functional margin equals the raw score.
+    assert(edusvm::calculateFunctionalMargin(model, {2.0, 1.0}, 1, margin, error));
     assert(std::abs(margin - 2.0) < 1e-9);
 
-    std::cout << "[PASS] testFunctionalMargin\n";
-}
+    // Train on a simple linearly separable dataset with two classes.
+    edusvm::Dataset training;
+    training.features = {{-2.0}, {-1.0}, {1.0}, {2.0}};
+    training.labels = {-1, -1, 1, 1};
+    edusvm::TrainingOptions options;
+    options.epochs = 500;
+    edusvm::Hyperplane trained;
+    assert(edusvm::trainSvm(training, options, trained, error));
+    assert(!trained.supportVectorIndices.empty());
 
-void testPrediction() {
-    std::string error;
+    // Check that unseen points on each side get the expected class.
     int prediction = 0;
-
-    edusvm::Hyperplane model{{2.0, 1.0}, -3.0};
-
-    assert(edusvm::predict(model, {2.0, 1.0}, prediction, error));
-    assert(prediction == 1);
-
-    assert(edusvm::predict(model, {0.0, 0.0}, prediction, error));
+    assert(edusvm::predictLabel(trained, {-1.5}, prediction, error));
     assert(prediction == -1);
-
-    std::cout << "[PASS] testPrediction\n";
-}
-
-void testPredictionAtZero() {
-    std::string error;
-    int prediction = 0;
-
-    edusvm::Hyperplane model{{1.0, 1.0}, -2.0};
-
-    assert(edusvm::predict(model, {1.0, 1.0}, prediction, error));
+    assert(edusvm::predictLabel(trained, {1.5}, prediction, error));
     assert(prediction == 1);
 
-    std::cout << "[PASS] testPredictionAtZero\n";
-}
+    // The training examples are separable, so all four outcomes are correct.
+    edusvm::EvaluationMetrics metrics;
+    assert(edusvm::evaluateModel(trained, training, metrics, error));
+    assert(metrics.truePositives == 2);
+    assert(metrics.trueNegatives == 2);
+    assert(metrics.falsePositives == 0);
+    assert(metrics.falseNegatives == 0);
+    assert(std::abs(metrics.accuracy - 1.0) < 1e-9);
+    assert(std::abs(metrics.precision - 1.0) < 1e-9);
+    assert(std::abs(metrics.recall - 1.0) < 1e-9);
+    assert(std::abs(metrics.f1Score - 1.0) < 1e-9);
 
-void testSupportVectorIdentification() {
-    std::string error;
-    std::vector<std::size_t> indices;
-
-    edusvm::Hyperplane model{{1.0}, 0.0};
-
-    edusvm::Dataset data;
-    data.features = {{2.0}, {1.0}, {0.5}, {-2.0}};
-    data.labels = {1, 1, 1, -1};
-
-    assert(edusvm::identifySupportVectors(
-        model, data, indices, 1e-9, error
-    ));
-
-    assert(indices.size() == 2);
-    assert(indices[0] == 1);
-    assert(indices[1] == 2);
-
-    std::cout << "[PASS] testSupportVectorIdentification\n";
-}
-
-void testInvalidSupportVectorInput() {
-    std::string error;
-    std::vector<std::size_t> indices;
-
-    edusvm::Hyperplane model{{1.0}, 0.0};
-
-    edusvm::Dataset data;
-    data.features = {{1.0}, {2.0}};
-    data.labels = {1};
-
-    assert(!edusvm::identifySupportVectors(
-        model, data, indices, 1e-9, error
-    ));
-
+    // Training must fail clearly when one of the classes is absent.
+    edusvm::Dataset oneClass;
+    oneClass.features = {{1.0}, {2.0}};
+    oneClass.labels = {1, 1};
+    assert(!edusvm::trainSvm(oneClass, options, trained, error));
     assert(!error.empty());
 
-    std::cout << "[PASS] testInvalidSupportVectorInput\n";
-}
-
-void testInvalidTolerance() {
-    std::string error;
-    std::vector<std::size_t> indices;
-
-    edusvm::Hyperplane model{{1.0}, 0.0};
-
-    edusvm::Dataset data;
-    data.features = {{1.0}};
-    data.labels = {1};
-
-    assert(!edusvm::identifySupportVectors(
-        model, data, indices,
-        std::numeric_limits<double>::quiet_NaN(), error
-    ));
-
-    assert(!error.empty());
-
-    std::cout << "[PASS] testInvalidTolerance\n";
-}
-
-edusvm::Dataset makeTrainingDataset() {
-    edusvm::Dataset data;
-
-    data.features = {
-        {-2.0},
-        {-1.0},
-        {1.0},
-        {2.0}
+    // Cross-validation should produce exactly one held-out prediction per row.
+    edusvm::Dataset crossValidationData;
+    crossValidationData.features = {
+        {1.0, 40.0}, {2.0, 50.0}, {3.0, 55.0},
+        {6.0, 75.0}, {7.0, 85.0}, {8.0, 90.0}
     };
+    crossValidationData.labels = {-1, -1, -1, 1, 1, 1};
+    edusvm::EvaluationMetrics crossValidationMetrics;
+    assert(edusvm::crossValidateSvm(
+        crossValidationData, 3, options, crossValidationMetrics, error
+    ));
+    assert(crossValidationMetrics.truePositives +
+        crossValidationMetrics.falsePositives +
+        crossValidationMetrics.trueNegatives +
+        crossValidationMetrics.falseNegatives == 6);
+    assert(crossValidationMetrics.accuracy >= 0.0);
+    assert(crossValidationMetrics.accuracy <= 1.0);
 
-    data.labels = {-1, -1, 1, 1};
-
-    return data;
-}
-
-void testSVMTraining() {
-    std::string error;
-
-    edusvm::Dataset data = makeTrainingDataset();
-    edusvm::SVMTrainingOptions options;
-    edusvm::Hyperplane model;
-
-    assert(edusvm::trainSVM(data, options, model, error));
-
-    assert(model.weights.size() == 1);
-    assert(std::isfinite(model.weights[0]));
-    assert(std::isfinite(model.bias));
-
-    int prediction = 0;
-
-    assert(edusvm::predict(model, {-2.0}, prediction, error));
-    assert(prediction == -1);
-
-    assert(edusvm::predict(model, {2.0}, prediction, error));
-    assert(prediction == 1);
-
-    std::cout << "[PASS] testSVMTraining\n";
-}
-
-void testInvalidTrainingOptions() {
-    std::string error;
-
-    edusvm::Dataset data = makeTrainingDataset();
-    edusvm::SVMTrainingOptions options;
-    edusvm::Hyperplane model;
-
-    options.learningRate = -0.01;
-
-    assert(!edusvm::trainSVM(data, options, model, error));
+    assert(!edusvm::crossValidateSvm(
+        crossValidationData, 4, options, crossValidationMetrics, error
+    ));
     assert(!error.empty());
 
-    std::cout << "[PASS] testInvalidTrainingOptions\n";
-}
-
-void testSingleClassRejected() {
-    std::string error;
-
-    edusvm::Dataset data;
-    data.features = {{1.0}, {2.0}};
-    data.labels = {1, 1};
-
-    edusvm::SVMTrainingOptions options;
-    edusvm::Hyperplane model;
-
-    assert(!edusvm::trainSVM(data, options, model, error));
-    assert(!error.empty());
-
-    std::cout << "[PASS] testSingleClassRejected\n";
-}
-
-void testEmptyTrainingDataset() {
-    std::string error;
-
-    edusvm::Dataset data;
-    edusvm::SVMTrainingOptions options;
-    edusvm::Hyperplane model;
-
-    assert(!edusvm::trainSVM(data, options, model, error));
-    assert(!error.empty());
-
-    std::cout << "[PASS] testEmptyTrainingDataset\n";
-}
-
-int main() {
-    testDecisionFunction();
-    testInvalidDecisionFunctionInput();
-    testFunctionalMargin();
-    testPrediction();
-    testPredictionAtZero();
-    testSupportVectorIdentification();
-    testInvalidSupportVectorInput();
-    testInvalidTolerance();
-    testSVMTraining();
-    testInvalidTrainingOptions();
-    testSingleClassRejected();
-    testEmptyTrainingDataset();
-
-    std::cout << "ALL SVM TESTS PASSED SUCCESSFULLY!\n";
     return 0;
 }

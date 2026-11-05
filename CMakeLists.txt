@@ -2,80 +2,99 @@
 
 project(EduSVM LANGUAGES CXX)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+# Use the same language version for the library, demo, and tests.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(edusvm_lib
     src/dataset.cpp
+    src/loss.cpp
     src/preprocessor.cpp
     src/preprocessor_strategies.cpp
+    src/regularization.cpp
     src/scaler.cpp
     src/svm.cpp
-    src/evaluation.cpp
-    src/loss.cpp
-    src/regularization.cpp
 )
 
+# Keep header paths correct in both the build tree and installed package.
 target_include_directories(edusvm_lib
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+add_executable(edusvm main.cpp)
+target_link_libraries(edusvm PRIVATE edusvm_lib)
 
-# Complete EduSVM classification example
-add_executable(end_to_end examples/end_to_end.cpp)
-target_link_libraries(end_to_end PRIVATE edusvm_lib)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
-    add_executable(main main.cpp)
-    target_link_libraries(main PRIVATE edusvm_lib)
-endif()
+# Build every standalone test with the same library used by the demo.
+set(EDUSVM_TESTS
+    test_dataset_basic
+    test_dataset_edges
+    test_dataset_csv
+    test_loss
+    test_oop
+    test_preprocessor
+    test_regularization
+    test_scaler
+    test_svm
+)
 
 enable_testing()
+foreach(test_name IN LISTS EDUSVM_TESTS)
+   add_executable(${test_name} tests/${test_name}.cpp)
+   target_link_libraries(${test_name} PRIVATE edusvm_lib)
+   add_test(NAME ${test_name} COMMAND ${test_name})
+endforeach()
 
-add_executable(test_dataset_basic tests/test_dataset_basic.cpp)
-target_link_libraries(test_dataset_basic PRIVATE edusvm_lib)
-add_test(NAME test_dataset_basic COMMAND test_dataset_basic)
-
-add_executable(test_dataset_edges tests/test_dataset_edges.cpp)
-target_link_libraries(test_dataset_edges PRIVATE edusvm_lib)
-add_test(NAME test_dataset_edges COMMAND test_dataset_edges)
-
-# CSV dataset loading tests
-add_executable(test_dataset_csv tests/test_dataset_csv.cpp)
-target_link_libraries(test_dataset_csv PRIVATE edusvm_lib)
-add_test(NAME test_dataset_csv COMMAND test_dataset_csv)
-
-set_tests_properties(test_dataset_csv PROPERTIES
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+# Let the CSV-loader test find the repository's sample data from any build dir.
+target_compile_definitions(test_dataset_csv PRIVATE
+    EDUSVM_TEST_CSV_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/input/students.csv"
 )
 
-add_executable(test_preprocessor tests/test_preprocessor.cpp)
-target_link_libraries(test_preprocessor PRIVATE edusvm_lib)
-add_test(NAME test_preprocessor COMMAND test_preprocessor)
+add_test(
+    NAME edusvm_demo
+    COMMAND edusvm "${CMAKE_CURRENT_SOURCE_DIR}/data/input/students.csv"
+)
 
-add_executable(test_scaler tests/test_scaler.cpp)
-target_link_libraries(test_scaler PRIVATE edusvm_lib)
-add_test(NAME test_scaler COMMAND test_scaler)
+# Install the library, command-line demo, public headers, and sample input.
+install(TARGETS edusvm_lib edusvm
+    EXPORT EduSVMTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
-add_executable(test_svm tests/test_svm.cpp)
-target_link_libraries(test_svm PRIVATE edusvm_lib)
-add_test(NAME test_svm COMMAND test_svm)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES data/input/students.csv
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/edusvm
+)
 
-add_executable(test_loss tests/test_loss.cpp)
-target_link_libraries(test_loss PRIVATE edusvm_lib)
-add_test(NAME test_loss COMMAND test_loss)
+configure_package_config_file(
+    cmake/EduSVMConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/EduSVMConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/EduSVM
+)
 
-add_executable(test_regularization tests/test_regularization.cpp)
-target_link_libraries(test_regularization PRIVATE edusvm_lib)
-add_test(NAME test_regularization COMMAND test_regularization)
+# Provide version-aware find_package(EduSVM) support to installed consumers.
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/EduSVMConfigVersion.cmake
+    VERSION 1.0.0
+    COMPATIBILITY SameMajorVersion
+)
 
+install(EXPORT EduSVMTargets
+    FILE EduSVMTargets.cmake
+    NAMESPACE EduSVM::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/EduSVM
+)
 
-add_executable(test_evaluation tests/test_evaluation.cpp)
-target_link_libraries(test_evaluation PRIVATE edusvm_lib)
-add_test(NAME test_evaluation COMMAND test_evaluation)
-add_executable(test_oop tests/test_oop.cpp)
-target_link_libraries(test_oop PRIVATE edusvm_lib)
-add_test(NAME test_oop COMMAND test_oop)
-
-
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/EduSVMConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EduSVMConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/EduSVM
+)

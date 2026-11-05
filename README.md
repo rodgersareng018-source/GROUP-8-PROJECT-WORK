@@ -1,94 +1,133 @@
-﻿# EduSVM - Student Performance Classification
+# EduSVM
 
-## 1. Project Overview
+EduSVM is a small C++17 educational project that demonstrates a linear binary
+Support Vector Machine for student-performance data. It has no third-party
+library dependencies.
 
-EduSVM is a reusable educational C++17 Support Vector Machine (SVM) library developed by Group 8.
+The program reads numeric features from a CSV file, validates and scales the
+data, trains a linear classifier, and prints predictions summarized as
+confusion-matrix counts, accuracy, precision, recall, and F1-score.
 
-It demonstrates binary classification using numerical student academic performance features.
+## Build and run the demo
 
-Classification labels:
-- +1 = PASS
-- -1 = FAIL
+On a fresh machine, install Git, CMake 3.16 or newer, and a C++17 compiler
+(for example, Visual Studio with the C++ workload on Windows, or GCC/Clang on
+Linux/macOS). Then clone and build from a terminal:
 
-## 2. Implemented Features
+```sh
+git clone https://github.com/rodgersareng018-source/GROUP-8-PROJECT-WORK.git
+cd GROUP-8-PROJECT-WORK
+cmake -S . -B build
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
 
-- Dataset representation and validation.
-- CSV dataset loading.
-- Mean imputation and incomplete-row removal.
-- Min-max feature scaling.
-- Linear SVM training using batch subgradient descent.
-- Decision function and functional margin.
-- Hinge loss and L2 regularization.
-- Support vector identification.
-- PASS/FAIL prediction.
-- Model evaluation using accuracy, precision, recall, F1 score and confusion matrix.
-- Complete end-to-end classification example.
+Run the sample dataset from the repository root (PowerShell):
 
-## 3. Project Structure
+```powershell
+.\build\Release\edusvm.exe data\input\students.csv
+```
 
-- include/edusvm/ - Public header files.
-- src/ - C++ implementation files.
-- tests/ - Automated test programs.
-- examples/ - Demonstration programs.
-- data/input/ - Input datasets.
-- CMakeLists.txt - Build configuration.
+For single-configuration generators, the executable may instead be at
+`build\edusvm.exe`. The CSV argument is optional; when run from the repository
+root, it reads `data/input/students.csv`.
 
-## 4. Technologies
+## Install and use the C++ library
 
-- C++17
-- CMake
-- MinGW/GCC
-- Git and GitHub
-- CTest
+The install step copies the library, public headers, demo executable, sample
+CSV, and CMake package files to a prefix. Choose a prefix you can write to.
+For example, to install under a local `install` folder:
 
-## 5. Build Instructions
+```powershell
+cmake --install build --config Release --prefix "$PWD\install"
+```
 
-Configure:
+On Unix-like shells, use `--prefix "$PWD/install"` instead. To install system
+wide on Linux/macOS, omit `--prefix` and use the platform's normal
+administrator privileges.
 
-    cmake -S . -B build
+The installed library can be used by another CMake project. In its
+`CMakeLists.txt`, locate the package and link the exported target:
 
-Build:
+```cmake
+find_package(EduSVM 1 CONFIG REQUIRED)
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE EduSVM::edusvm_lib)
+```
 
-    cmake --build build
+Configure that consumer project with the install prefix so CMake can find
+EduSVM:
 
-## 6. Run the End-to-End Example
+```powershell
+cmake -S . -B build -DCMAKE_PREFIX_PATH="C:\path\to\GROUP-8-PROJECT-WORK\install"
+cmake --build build --config Release
+```
 
-    .\build\end_to_end.exe
+Replace the example path with the actual absolute path to the install
+directory. The installed CSV is under `share/edusvm/students.csv` (or the
+platform's equivalent data directory). The demo accepts a CSV path, so pass
+that installed file when running the installed executable.
 
-The example loads data/input/students.csv, separates training and testing records, scales features, trains the SVM, makes predictions and evaluates the results.
+## CSV format
 
-## 7. Dataset Format
+The first non-empty row is a header. It must contain at least one feature
+column, and its final column must be named `label` (case-insensitive). Each
+following non-empty row must have the same number of columns. Feature values
+must be finite numbers, and labels must be `-1` or `+1`.
 
-The CSV dataset contains numerical features and a binary label.
+The included `data/input/students.csv` uses `study_hours`, `attendance`, and
+`assignment_score` as features. A label of `+1` represents PASS and `-1`
+represents FAIL. The file loader reports malformed rows and does not replace
+the destination dataset on failure.
 
-Example columns:
+## Project layout
 
-    study_hours,attendance,assignment_score,label
+- `include/edusvm/` contains public data structures and module interfaces.
+- `src/` implements CSV loading, validation, scaling, hinge loss, L2
+  regularization, and SVM training/prediction/evaluation.
+- `main.cpp` connects those modules into the command-line demo.
+- `tests/` contains tests for the modules and an executable smoke test; CMake
+  builds and registers all of them with CTest.
+- `data/input/students.csv` is the sample input dataset.
+- `examples/` contains standalone examples, and `reports/` contains project
+  progress and review documents.
 
-Labels must be +1 (PASS) or -1 (FAIL).
+## Classifier details and evaluation
 
-## 8. Automated Testing
+The scaler learns each feature's minimum and maximum from each training fold
+and maps values to `[0, 1]`. Constant-valued features map to `0`.
+The trainer uses batch subgradient descent on average hinge loss plus an L2
+weight penalty; the learning rate decays by the square root of the epoch
+number. The default settings are 1,000 epochs, an initial learning rate of
+`0.1`, and a regularization coefficient (`lambda`) of `0.01`. Training data
+must contain both labels.
 
-Run all registered tests:
+The demo uses deterministic, stratified k-fold cross-validation, with up to
+five folds and at least one example of each class in every fold. Each row is
+predicted by a model that was not trained on that row, and the reported
+confusion matrix and scores are pooled across those out-of-fold predictions.
+Scaling is fitted independently on each fold's training rows to avoid
+information leaking from the validation rows. At least two examples of each
+class are required.
 
-    ctest --test-dir build --output-on-failure
+Cross-validation makes better use of a small dataset than a single holdout,
+but it cannot make a six-row dataset representative. The sample's scores are
+still preliminary and can change substantially with new records. Use a larger,
+representative, genuinely labeled dataset before drawing conclusions about
+real-world performance; do not duplicate records to inflate the sample size.
 
-The verified test suite contains 10 test groups covering datasets, CSV loading, preprocessing, scaling, SVM, loss, regularization, evaluation and OOP.
+The public SVM interface also lets callers train and evaluate using their own
+datasets and `TrainingOptions`. Support vectors are training rows whose final
+functional margin is at most `1.01`; their indices refer to the training
+dataset supplied to `trainSvm`.
 
-## 9. Evaluation Metrics
+## Useful interfaces
 
-EduSVM calculates:
-- Accuracy
-- Precision
-- Recall
-- F1 score
-- True positives and true negatives
-- False positives and false negatives
-
-The sample achieved 100% accuracy on two test records. This small result does not guarantee performance on larger datasets.
-
-## 10. Project Status
-
-The core library, end-to-end example and all 10 automated test groups have been built and verified successfully.
-
-EduSVM demonstrates a modular and reusable educational SVM classification workflow.
+- `loadDatasetCsv`: load and validate a CSV dataset.
+- `preprocessDataset` / `validateDataset`: validate rows, labels, and values.
+- `Scaler`: fit and apply min-max feature scaling.
+- `calculateHingeLoss` and `calculateL2Regularization`: compute individual
+  objective components.
+- `trainSvm`, `decisionFunction`, `predictLabel`, `evaluateModel`, and
+  `crossValidateSvm`: train and use the linear SVM and calculate evaluation
+  metrics.

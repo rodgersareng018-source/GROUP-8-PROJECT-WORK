@@ -8,34 +8,33 @@
 
 namespace edusvm {
 
+// Check every row before copying the dataset, preventing invalid indexing and
+// ensuring callers either receive a fully validated copy or a clear error.
 bool preprocessDataset(
     const Dataset& input,
     Dataset& output,
     std::string& errorMessage
-) {
-    // Check whether the dataset is empty.
+ ) {
     if (input.features.empty()) {
         errorMessage = "Preprocessing failed: dataset is empty.";
         return false;
     }
 
-    // Check that the number of labels matches the number of rows.
+    // Check this before looking up labels by row index.
     if (input.features.size() != input.labels.size()) {
         errorMessage =
-            "Preprocessing failed: feature and label counts do not match.";
+            "Preprocessing failed: number of labels does not match number of rows.";
         return false;
     }
 
-    // Determine the expected number of features.
-    const std::size_t expectedFeatures = input.features[0].size();
-
+    // Use the first row as the expected feature width for every student.
+    std::size_t expectedFeatures = input.features[0].size();
     if (expectedFeatures == 0) {
         errorMessage =
             "Preprocessing failed: rows contain zero features.";
         return false;
     }
 
-    // Validate every row.
     for (std::size_t i = 0; i < input.features.size(); ++i) {
         const auto& sample = input.features[i];
 
@@ -46,12 +45,9 @@ bool preprocessDataset(
             return false;
         }
 
-        // Validation preprocessing rejects NaN and infinity.
-        for (double value : sample) {
-            if (!std::isfinite(value)) {
-                errorMessage =
-                    "Preprocessing failed: non-finite value at row "
-                    + std::to_string(i) + ".";
+        for (double val : sample) {
+            if (!std::isfinite(val)) {
+                errorMessage = "Preprocessing failed: non-finite value at row " + std::to_string(i) + ".";
                 return false;
             }
         }
@@ -64,7 +60,7 @@ bool preprocessDataset(
         }
     }
 
-    // Copy only after all validation succeeds.
+    // Preserve the input unchanged; this stage validates rather than modifies.
     output = input;
     errorMessage.clear();
 
