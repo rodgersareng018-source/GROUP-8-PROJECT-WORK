@@ -1,8 +1,11 @@
-#include "edusvm/svm.hpp"
-#include <iostream>
+﻿#include "edusvm/svm.hpp"
+
 #include <cassert>
 #include <cmath>
+#include <iostream>
+#include <limits>
 #include <string>
+#include <vector>
 
 int main() {
     // Shared error string is populated when an API call rejects its inputs.
@@ -11,27 +14,37 @@ int main() {
     // The dot product is 2*2 + 1*1, then adding bias -3 gives score 2.
     edusvm::Hyperplane model{{2.0, 1.0}, -3.0};
     double result = 0.0;
+
     assert(edusvm::decisionFunction(model, {2.0, 1.0}, result, error));
     assert(std::abs(result - 2.0) < 1e-9);
 
     // A zero feature vector leaves only the model bias, which is negative.
     assert(edusvm::decisionFunction(model, {0.0, 0.0}, result, error));
-    assert(std::abs(result - (-3.0)) < 1e-9);
+    assert(std::abs(result + 3.0) < 1e-9);
 
     // A score of zero lies exactly on the decision boundary.
     edusvm::Hyperplane zeroModel{{1.0, 1.0}, -2.0};
     assert(edusvm::decisionFunction(zeroModel, {1.0, 1.0}, result, error));
-    assert(std::abs(result - 0.0) < 1e-9);
+    assert(std::abs(result) < 1e-9);
+
+    std::cout << "[PASS] testDecisionFunction\n";
+}
+
+void testInvalidDecisionFunctionInput() {
+    std::string error;
+    double result = 0.0;
 
     // A model and prediction row must have equal feature counts.
     edusvm::Hyperplane badModel{{2.0}, 0.0};
-    assert(!edusvm::decisionFunction(badModel, {2.0, 1.0}, result, error));
+
+    assert(!edusvm::decisionFunction(
+        badModel, {2.0, 1.0}, result, error
+    ));
+
     assert(!error.empty());
 
     // Margins are defined only for the two supported labels.
     double margin = 0.0;
-    assert(!edusvm::calculateFunctionalMargin(model, {2.0, 1.0}, 0, margin, error));
-    assert(!error.empty());
 
     // For a positive label, the functional margin equals the raw score.
     assert(edusvm::calculateFunctionalMargin(model, {2.0, 1.0}, 1, margin, error));

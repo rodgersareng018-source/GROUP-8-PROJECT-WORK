@@ -1,7 +1,10 @@
 
+#include "edusvm/preprocessor_strategies.hpp"
+#include <limits>
 #include "edusvm/preprocessor.hpp"
 
 #include <cmath>
+#include <string>
 
 namespace edusvm {
 
@@ -27,7 +30,8 @@ bool preprocessDataset(
     // Use the first row as the expected feature width for every student.
     std::size_t expectedFeatures = input.features[0].size();
     if (expectedFeatures == 0) {
-        errorMessage = "Preprocessing failed: rows contain zero features.";
+        errorMessage =
+            "Preprocessing failed: rows contain zero features.";
         return false;
     }
 
@@ -35,7 +39,9 @@ bool preprocessDataset(
         const auto& sample = input.features[i];
 
         if (sample.size() != expectedFeatures) {
-            errorMessage = "Preprocessing failed: inconsistent feature count at row " + std::to_string(i) + ".";
+            errorMessage =
+                "Preprocessing failed: inconsistent feature count at row "
+                + std::to_string(i) + ".";
             return false;
         }
 
@@ -47,14 +53,17 @@ bool preprocessDataset(
         }
 
         if (input.labels[i] != 1 && input.labels[i] != -1) {
-            errorMessage = "Preprocessing failed: invalid label at row " + std::to_string(i) + " (must be 1 or -1).";
+            errorMessage =
+                "Preprocessing failed: invalid label at row "
+                + std::to_string(i) + " (must be 1 or -1).";
             return false;
         }
     }
 
     // Preserve the input unchanged; this stage validates rather than modifies.
     output = input;
-    errorMessage = "";
+    errorMessage.clear();
+
     return true;
 }
 

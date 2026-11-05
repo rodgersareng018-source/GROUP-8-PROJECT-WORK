@@ -1,36 +1,32 @@
 // Check successful preprocessing and rejection of malformed datasets.
 #include "edusvm/dataset.hpp"
 #include "edusvm/preprocessor.hpp"
+#include "edusvm/preprocessor_strategies.hpp"
+
 #include <iostream>
 #include <cassert>
-#include <cmath> // For NAN and INFINITY constants
+#include <cmath>
+#include <limits>
 
 // A valid dataset should be copied to the output with no error.
 void testValidDataset() {
     edusvm::Dataset input;
-    input.features = {
-        {55.0, 40.0, 12.0},
-        {60.0, 45.0, 13.0}
-    };
+    input.features = {{55.0, 40.0, 12.0}, {60.0, 45.0, 13.0}};
     input.labels = {-1, 1};
 
     edusvm::Dataset output;
     std::string error;
 
-    bool result = edusvm::preprocessDataset(input, output, error);
-    
-    assert(result == true);
-    assert(error == "");
-    std::cout << "[PASS] testValidDataset" << std::endl;
+    assert(edusvm::preprocessDataset(input, output, error));
+    assert(error.empty());
+
+    std::cout << "[PASS] testValidDataset\n";
 }
 
 // Every row must have the same number of feature values.
 void testInconsistentFeatureCount() {
     edusvm::Dataset input;
-    input.features = {
-        {55.0, 40.0, 12.0}, // Row 0 has 3 features
-        {60.0, 45.0}        // Row 1 only has 2 features (Inconsistent!)
-    };
+    input.features = {{55.0, 40.0, 12.0}, {60.0, 45.0}};
     input.labels = {-1, 1};
 
     edusvm::Dataset output;
@@ -41,45 +37,38 @@ void testInconsistentFeatureCount() {
     assert(result == false);
     // Check the error describes the row-shape problem.
     assert(error.find("inconsistent feature count") != std::string::npos);
-    std::cout << "[PASS] testInconsistentFeatureCount" << std::endl;
+
+    std::cout << "[PASS] testInconsistentFeatureCount\n";
 }
 
 // NaN and infinity are not usable numeric measurements.
 void testNonFiniteValues() {
     edusvm::Dataset input;
-    input.features = {
-        {55.0, NAN, 12.0},   // Contains a NaN value
-        {60.0, 45.0, 13.0}
-    };
+    input.features = {{55.0, NAN, 12.0}, {60.0, 45.0, 13.0}};
     input.labels = {-1, 1};
 
     edusvm::Dataset output;
     std::string error;
 
-    bool result = edusvm::preprocessDataset(input, output, error);
-
-    assert(result == false);
+    assert(!edusvm::preprocessDataset(input, output, error));
     assert(error.find("non-finite value") != std::string::npos);
-    std::cout << "[PASS] testNonFiniteValues" << std::endl;
+
+    std::cout << "[PASS] testNonFiniteValues\n";
 }
 
 // The classifier accepts only -1 and +1 labels.
 void testInvalidLabels() {
     edusvm::Dataset input;
-    input.features = {
-        {55.0, 40.0, 12.0},
-        {60.0, 45.0, 13.0}
-    };
-    input.labels = {-1, 5}; // 5 is an invalid label (must be 1 or -1)
+    input.features = {{55.0, 40.0}, {60.0, 45.0}};
+    input.labels = {-1, 5};
 
     edusvm::Dataset output;
     std::string error;
 
-    bool result = edusvm::preprocessDataset(input, output, error);
-
-    assert(result == false);
+    assert(!edusvm::preprocessDataset(input, output, error));
     assert(error.find("invalid label") != std::string::npos);
-    std::cout << "[PASS] testInvalidLabels" << std::endl;
+
+    std::cout << "[PASS] testInvalidLabels\n";
 }
 
 void testMismatchedLabels() {
@@ -98,16 +87,54 @@ void testMismatchedLabels() {
 int main() {
     // Run each validation case and report the overall result.
 
+    assert(imputer.process(input, output, error));
+    assert(output.features.size() == 2);
+    assert(output.labels.size() == 2);
+    assert(output.labels[0] == -1);
+    assert(output.labels[1] == 1);
+
+    std::cout << "[PASS] testDropRowImputation\n";
+}
+
+void testAllMissingColumn() {
+    edusvm::Dataset input;
+    const double missing = std::numeric_limits<double>::quiet_NaN();
+
+    input.features = {{missing, 60.0}, {missing, 70.0}};
+    input.labels = {-1, 1};
+
+    edusvm::Dataset output;
+    std::string error;
+
+    edusvm::ImputationPreprocessor imputer(edusvm::ImputationStrategy::MEAN);
+
+    assert(!imputer.process(input, output, error));
+    assert(error.find("only missing values") != std::string::npos);
+
+    std::cout << "[PASS] testAllMissingColumn\n";
+}
+
+void testMismatchedLabelCount() {
+    edusvm::Dataset input;
+    input.features = {{2.0, 60.0}, {4.0, 80.0}};
+    input.labels = {-1};
+
+    edusvm::Dataset output;
+    std::string error;
+
+    assert(!edusvm::preprocessDataset(input, output, error));
+    assert(error.find("counts do not match") != std::string::npos);
+
+    std::cout << "[PASS] testMismatchedLabelCount\n";
+}
+
+int main() {
     testValidDataset();
     testInconsistentFeatureCount();
     testNonFiniteValues();
     testInvalidLabels();
     testMismatchedLabels();
 
-
-    std::cout << "ALL PREPROCESSOR TESTS PASSED SUCCESSFULLY!" << std::endl;
-    
-    
+    std::cout << "ALL PREPROCESSOR TESTS PASSED SUCCESSFULLY!\n";
     return 0;
-
 }

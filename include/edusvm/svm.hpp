@@ -1,6 +1,7 @@
-#ifndef EDUSVM_SVM_HPP
+﻿#ifndef EDUSVM_SVM_HPP
 #define EDUSVM_SVM_HPP
 
+#include <cstddef>
 #include <string>
 #include <vector>
 

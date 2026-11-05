@@ -1,3 +1,4 @@
+
 #ifndef EDUSVM_DATASET_HPP
 #define EDUSVM_DATASET_HPP
 
@@ -10,13 +11,24 @@ namespace edusvm {
 struct Dataset {
     std::vector<std::vector<double>> features;
     std::vector<int> labels;
+
     bool empty() const {
         return features.empty();
     }
 };
 
-// Check the dataset's row counts, feature shapes, finite values, and labels.
-// Returns false and describes the first problem in errorMessage.
+// Loads numerical features and binary labels from a CSV file.
+// The first row must contain column headings.
+// The final column must contain labels (-1 or +1).
+class DatasetLoader {
+public:
+    static bool loadFromCSV(
+        const std::string& filePath,
+        Dataset& dataset,
+        std::string& errorMessage
+    );
+};
+
 bool validateDataset(
     const Dataset& dataset,
     std::string& errorMessage
