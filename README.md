@@ -128,6 +128,7 @@ dataset supplied to `trainSvm`.
 - `Scaler`: fit and apply min-max feature scaling.
 - `calculateHingeLoss` and `calculateL2Regularization`: compute individual
   objective components.
-- `trainSvm`, `decisionFunction`, `predictLabel`, `evaluateModel`, and
-  `crossValidateSvm`: train and use the linear SVM and calculate evaluation
-  metrics.
+- `trainSvm`, `decisionFunction`, `predictLabel`, and `crossValidateSvm`:
+  train and use the linear SVM.
+- `EvaluationMetrics` and `evaluateModel` in `edusvm/evaluation.hpp`:
+  calculate classification metrics separately from model training.

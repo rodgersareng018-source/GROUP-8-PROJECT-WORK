@@ -18,6 +18,7 @@ add_library(edusvm_lib
     src/regularization.cpp
     src/scaler.cpp
     src/svm.cpp
+    src/evaluation.cpp
 )
 
 # Keep header paths correct in both the build tree and installed package.
@@ -41,6 +42,7 @@ set(EDUSVM_TESTS
     test_regularization
     test_scaler
     test_svm
+    test_evaluation
 )
 
 enable_testing()

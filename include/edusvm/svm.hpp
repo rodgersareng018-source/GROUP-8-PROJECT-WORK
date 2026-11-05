@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "edusvm/dataset.hpp"
+#include "edusvm/evaluation.hpp"
 
 namespace edusvm {
 
@@ -22,18 +23,6 @@ struct TrainingOptions {
     double lambda = 0.01;
     double learningRate = 0.1;
     std::size_t epochs = 1000;
-};
-
-// Confusion-matrix counts and commonly used binary-classification scores.
-struct EvaluationMetrics {
-    std::size_t truePositives = 0;
-    std::size_t falsePositives = 0;
-    std::size_t trueNegatives = 0;
-    std::size_t falseNegatives = 0;
-    double accuracy = 0.0;
-    double precision = 0.0;
-    double recall = 0.0;
-    double f1Score = 0.0;
 };
 
 // Learn a linear SVM from labeled rows and return its weights and bias.
@@ -66,14 +55,6 @@ bool predictLabel(
     const Hyperplane& model,
     const std::vector<double>& features,
     int& prediction,
-    std::string& errorMessage
-);
-
-// Compare predictions with known labels and fill the confusion-matrix metrics.
-bool evaluateModel(
-    const Hyperplane& model,
-    const Dataset& data,
-    EvaluationMetrics& metrics,
     std::string& errorMessage
 );
 

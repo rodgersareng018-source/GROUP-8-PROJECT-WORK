@@ -1,6 +1,7 @@
 ﻿#include "edusvm/preprocessor_strategies.hpp"
 #include "edusvm/preprocessor.hpp"
 
+#include <cmath>
 #include <stdexcept>
 
 namespace edusvm {
