@@ -1,122 +1,94 @@
-# EduSVM – Student Performance Classification
+﻿# EduSVM - Student Performance Classification
 
 ## 1. Project Overview
 
-EduSVM is a modular C++17 educational Support Vector Machine (SVM) library developed by Group 8.
+EduSVM is a reusable educational C++17 Support Vector Machine (SVM) library developed by Group 8.
 
-The project demonstrates the mathematical foundations of binary classification using student academic features. The intended classification labels are:
+It demonstrates binary classification using numerical student academic performance features.
 
-- `+1` – PASS
-- `-1` – FAIL
-
-The project uses object-oriented programming and CMake for building and testing.
+Classification labels:
+- +1 = PASS
+- -1 = FAIL
 
 ## 2. Implemented Features
 
-The current implementation includes:
-
-1. **Dataset representation and validation** – Stores feature matrices and binary labels and validates dataset structure.
-2. **Data preprocessing** – Provides dataset validation and copying.
-3. **Feature scaling** – Implements min-max normalization and handles constant-valued features.
-4. **Hyperplane representation** – Represents an SVM hyperplane using weights and bias.
-5. **Functional margin** – Calculates the functional margin of a labelled sample.
-6. **Hinge loss** – Calculates hinge loss for an individual sample.
-7. **L2 regularization** – Calculates the L2 regularization penalty.
-8. **Object-oriented programming** – Demonstrates encapsulation, inheritance and runtime polymorphism.
-
-## 3. Features Planned for Further Development
-
-The following features are not yet available as complete library functionality:
-
+- Dataset representation and validation.
 - CSV dataset loading.
-- Missing-value imputation.
-- Gradient-based SVM training and optimization.
-- Support-vector identification.
-- A public PASS/FAIL prediction interface.
-- Model evaluation metrics, including accuracy, precision, recall and F1-score.
+- Mean imputation and incomplete-row removal.
+- Min-max feature scaling.
+- Linear SVM training using batch subgradient descent.
+- Decision function and functional margin.
+- Hinge loss and L2 regularization.
+- Support vector identification.
+- PASS/FAIL prediction.
+- Model evaluation using accuracy, precision, recall, F1 score and confusion matrix.
+- Complete end-to-end classification example.
 
-These features should be implemented and tested before being described as completed.
+## 3. Project Structure
 
-## 4. Project Structure
+- include/edusvm/ - Public header files.
+- src/ - C++ implementation files.
+- tests/ - Automated test programs.
+- examples/ - Demonstration programs.
+- data/input/ - Input datasets.
+- CMakeLists.txt - Build configuration.
 
-```text
-GROUP-8-PROJECT-WORK/
-├── CMakeLists.txt
-├── README.md
-├── include/
-│   └── edusvm/
-├── src/
-├── tests/
-├── examples/
-├── data/
-└── reports/
-```
+## 4. Technologies
 
-## 5. Object-Oriented Design
+- C++17
+- CMake
+- MinGW/GCC
+- Git and GitHub
+- CTest
 
-The project demonstrates the three main OOP principles:
+## 5. Build Instructions
 
-- **Encapsulation:** Private class members and controlled public access.
-- **Inheritance:** `ValidationPreprocessor` and `ScalingPreprocessor` inherit from the `Preprocessor` base class.
-- **Polymorphism:** Derived preprocessing classes override the virtual `process()` function.
+Configure:
 
-The OOP demonstration is in `examples/example_oop.cpp`, with tests in `tests/test_oop.cpp`.
+    cmake -S . -B build
 
-## 6. Requirements
+Build:
 
-- C++17-compatible compiler.
-- CMake.
-- Git.
-- MinGW on Windows when using the MinGW Makefiles generator.
+    cmake --build build
 
-## 7. Installation and Build
+## 6. Run the End-to-End Example
 
-### Clone the repository
+    .\build\end_to_end.exe
 
-```bash
-git clone https://github.com/rodgersareng018-source/GROUP-8-PROJECT-WORK.git
-cd GROUP-8-PROJECT-WORK
-```
+The example loads data/input/students.csv, separates training and testing records, scales features, trains the SVM, makes predictions and evaluates the results.
 
-### Configure on Windows using MinGW
+## 7. Dataset Format
 
-```bash
-cmake -S . -B build -G "MinGW Makefiles"
-```
+The CSV dataset contains numerical features and a binary label.
 
-### Build the project
+Example columns:
 
-```bash
-cmake --build build
-```
+    study_hours,attendance,assignment_score,label
 
-### Run the tests
+Labels must be +1 (PASS) or -1 (FAIL).
 
-```bash
-ctest --test-dir build --output-on-failure
-```
+## 8. Automated Testing
 
-## 8. Testing
+Run all registered tests:
 
-The project currently has eight registered test programs:
+    ctest --test-dir build --output-on-failure
 
-1. `test_dataset_basic`
-2. `test_dataset_edges`
-3. `test_preprocessor`
-4. `test_scaler`
-5. `test_svm`
-6. `test_loss`
-7. `test_regularization`
-8. `test_oop`
+The verified test suite contains 10 test groups covering datasets, CSV loading, preprocessing, scaling, SVM, loss, regularization, evaluation and OOP.
 
-**Latest verification:** All eight registered tests passed on the current main branch on 5 November 2026.
+## 9. Evaluation Metrics
 
-## 9. Group Contributions
+EduSVM calculates:
+- Accuracy
+- Precision
+- Recall
+- F1 score
+- True positives and true negatives
+- False positives and false negatives
 
-The project was developed collaboratively by eight group members. Individual contributions and weekly progress are documented in the `reports/` directory and Git history.
+The sample achieved 100% accuracy on two test records. This small result does not guarantee performance on larger datasets.
 
 ## 10. Project Status
 
-EduSVM has an integrated C++ library foundation, mathematical calculation modules, OOP demonstrations, automated build configuration and passing tests.
+The core library, end-to-end example and all 10 automated test groups have been built and verified successfully.
 
-Further development is required to complete the full SVM training and student-classification workflow.
+EduSVM demonstrates a modular and reusable educational SVM classification workflow.
