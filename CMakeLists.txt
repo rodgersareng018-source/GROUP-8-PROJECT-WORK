@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+﻿cmake_minimum_required(VERSION 3.16)
 
 project(EduSVM LANGUAGES CXX)
 
@@ -6,45 +6,56 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB EDUSVM_SOURCES CONFIGURE_DEPENDS
-    "${PROJECT_SOURCE_DIR}/src/*.cpp"
+add_library(edusvm_lib
+    src/dataset.cpp
+    src/preprocessor.cpp
+    src/preprocessor_strategies.cpp
+    src/scaler.cpp
+    src/svm.cpp
+    src/loss.cpp
+    src/regularization.cpp
 )
 
-if(NOT EDUSVM_SOURCES)
-    message(FATAL_ERROR "No C++ source files found in src/")
+target_include_directories(edusvm_lib
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+    add_executable(main main.cpp)
+    target_link_libraries(main PRIVATE edusvm_lib)
 endif()
-
-add_library(edusvm ${EDUSVM_SOURCES})
-
-target_include_directories(edusvm
-    PUBLIC "${PROJECT_SOURCE_DIR}/include"
-)
 
 enable_testing()
 
-file(GLOB EDUSVM_TEST_FILES CONFIGURE_DEPENDS
-    "${PROJECT_SOURCE_DIR}/tests/test_*.cpp"
-)
+add_executable(test_dataset_basic tests/test_dataset_basic.cpp)
+target_link_libraries(test_dataset_basic PRIVATE edusvm_lib)
+add_test(NAME test_dataset_basic COMMAND test_dataset_basic)
 
-foreach(TEST_FILE IN LISTS EDUSVM_TEST_FILES)
-    get_filename_component(TEST_NAME "${TEST_FILE}" NAME_WE)
+add_executable(test_dataset_edges tests/test_dataset_edges.cpp)
+target_link_libraries(test_dataset_edges PRIVATE edusvm_lib)
+add_test(NAME test_dataset_edges COMMAND test_dataset_edges)
 
-    add_executable("${TEST_NAME}" "${TEST_FILE}")
-    target_link_libraries("${TEST_NAME}" PRIVATE edusvm)
+add_executable(test_preprocessor tests/test_preprocessor.cpp)
+target_link_libraries(test_preprocessor PRIVATE edusvm_lib)
+add_test(NAME test_preprocessor COMMAND test_preprocessor)
 
-    add_test(
-        NAME "${TEST_NAME}"
-        COMMAND "${TEST_NAME}"
-    )
-endforeach()
+add_executable(test_scaler tests/test_scaler.cpp)
+target_link_libraries(test_scaler PRIVATE edusvm_lib)
+add_test(NAME test_scaler COMMAND test_scaler)
 
-file(GLOB EDUSVM_EXAMPLES CONFIGURE_DEPENDS
-    "${PROJECT_SOURCE_DIR}/examples/*.cpp"
-)
+add_executable(test_svm tests/test_svm.cpp)
+target_link_libraries(test_svm PRIVATE edusvm_lib)
+add_test(NAME test_svm COMMAND test_svm)
 
-foreach(EXAMPLE_FILE IN LISTS EDUSVM_EXAMPLES)
-    get_filename_component(EXAMPLE_NAME "${EXAMPLE_FILE}" NAME_WE)
+add_executable(test_loss tests/test_loss.cpp)
+target_link_libraries(test_loss PRIVATE edusvm_lib)
+add_test(NAME test_loss COMMAND test_loss)
 
-    add_executable("${EXAMPLE_NAME}" "${EXAMPLE_FILE}")
-    target_link_libraries("${EXAMPLE_NAME}" PRIVATE edusvm)
-endforeach()
+add_executable(test_regularization tests/test_regularization.cpp)
+target_link_libraries(test_regularization PRIVATE edusvm_lib)
+add_test(NAME test_regularization COMMAND test_regularization)
+
+add_executable(test_oop tests/test_oop.cpp)
+target_link_libraries(test_oop PRIVATE edusvm_lib)
+add_test(NAME test_oop COMMAND test_oop)

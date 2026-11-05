@@ -1,0 +1,22 @@
+# Week 3 Progress Report - ngor ahok (SVM Module)
+
+## 1. Work Completed
+- Finalized the SVM Hyperplane and Margin calculations in `src/svm.cpp`.
+- Ensured the header file `include/edusvm/svm.hpp` was clean and ready for other modules to use.
+- Reviewed the mathematical logic for the decision function (`w · x + b`) and functional margin to ensure it aligns with the SVM requirements.
+- Coordinated with Monica to ensure my test file (`tests/test_svm.cpp`) was added to the CMakeLists.txt for the build.
+
+## 2. Tests Performed and Results
+- **Test 1:** Validated the decision function with weights `{2.0, 1.0}` and bias `-3.0`. Result correctly calculated as `2.0`.
+- **Test 2:** Tested error handling for mismatched feature counts. The function correctly rejected the input and returned an error message.
+- **Test 3:** Tested error handling for invalid labels (e.g., `0`). The margin function successfully rejected it.
+- **Test 4:** Verified the functional margin calculation returns the correct positive value for label `1`. 
+- *Result:* All asserts passed locally/visually. Ready for final CMake integration.
+
+## 3. Challenges Encountered
+- Adapting to the online GitHub web editor meant I could not run `ctest` directly in a terminal. 
+- Solved this by manually verifying the math and coordinating with Monica to ensure the CMake setup compiles the test file correctly on her end.
+
+## 4. Remaining Work
+- My individual SVM module is 100% complete.
+- Waiting for the final integration into the `main` branch and assisting Rodgers with documentation if needed.
