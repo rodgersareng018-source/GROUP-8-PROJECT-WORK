@@ -1,4 +1,5 @@
 ﻿#include "edusvm/evaluation.hpp"
+#include "edusvm/svm.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -17,10 +18,10 @@ void testEvaluationMetrics() {
 
     assert(edusvm::evaluateModel(model, data, metrics, error));
 
-    assert(metrics.confusionMatrix.truePositive == 1);
-    assert(metrics.confusionMatrix.trueNegative == 1);
-    assert(metrics.confusionMatrix.falsePositive == 1);
-    assert(metrics.confusionMatrix.falseNegative == 1);
+    assert(metrics.truePositives == 1);
+    assert(metrics.trueNegatives == 1);
+    assert(metrics.falsePositives == 1);
+    assert(metrics.falseNegatives == 1);
 
     assert(std::abs(metrics.accuracy - 0.5) < 1e-9);
     assert(std::abs(metrics.precision - 0.5) < 1e-9);

@@ -6,6 +6,12 @@
 
 namespace edusvm {
 
+// Choose how a preprocessor handles rows containing missing feature values.
+enum class ImputationStrategy {
+    MEAN,
+    DROP_ROW
+};
+
 // A strategy that checks dataset structure and values without changing them.
 class ValidationPreprocessor final : public Preprocessor {
 public:
