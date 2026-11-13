@@ -1,7 +1,3 @@
-// examples/example_dataset.cpp
-
-// Small example showing how to build a Dataset by hand and validate it.
-
 #include "edusvm/dataset.hpp"
 
 #include <iostream>
@@ -9,10 +5,7 @@
 
 namespace {
 
-// Each row is one student: {study hours per week, attendance percentage}.
-// Label +1 = passed, -1 = failed.
 edusvm::Dataset buildSampleDataset() {
-    // Construct a small rectangular table and assign one class per student.
     edusvm::Dataset dataset;
 
     dataset.features = {
@@ -44,20 +37,16 @@ void report(const std::string& name, const edusvm::Dataset& dataset) {
 } // namespace
 
 int main() {
-    // First show a valid example, then introduce one error at a time.
-    // 1. A well-formed dataset.
-    edusvm::Dataset good = buildSampleDataset();
-    report("good dataset", good);
+    edusvm::Dataset validData = buildSampleDataset();
+    report("good dataset", validData);
 
-    // 2. Break it on purpose: 0 is not a valid SVM label.
-    edusvm::Dataset badLabel = buildSampleDataset();
-    badLabel.labels[2] = 0;
-    report("bad label dataset", badLabel);
+    edusvm::Dataset invalidLabelData = buildSampleDataset();
+    invalidLabelData.labels[2] = 0;
+    report("bad label dataset", invalidLabelData);
 
-    // 3. Break it differently: one row has a missing feature.
-    edusvm::Dataset jagged = buildSampleDataset();
-    jagged.features[4].pop_back();
-    report("jagged dataset", jagged);
+    edusvm::Dataset unevenRowsData = buildSampleDataset();
+    unevenRowsData.features[4].pop_back();
+    report("jagged dataset", unevenRowsData);
 
     return 0;
 }

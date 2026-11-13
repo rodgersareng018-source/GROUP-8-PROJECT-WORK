@@ -10,7 +10,7 @@ namespace edusvm {
 
 struct Hyperplane;
 
-// Confusion-matrix counts and commonly used binary-classification scores.
+// Counts the four prediction outcomes and the scores calculated from them.
 struct EvaluationMetrics {
     std::size_t truePositives = 0;
     std::size_t falsePositives = 0;
@@ -22,7 +22,6 @@ struct EvaluationMetrics {
     double f1Score = 0.0;
 };
 
-// Compare model predictions with known labels and calculate evaluation metrics.
 bool evaluateModel(
     const Hyperplane& model,
     const Dataset& data,

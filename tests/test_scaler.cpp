@@ -8,9 +8,16 @@
 using edusvm::Dataset;
 using edusvm::Scaler;
 
+namespace {
+
+class TestCase {
+public:
+    virtual ~TestCase() = default;
+    virtual void run() const = 0;
+};
+
 static int failures = 0;
 
-// Keep floating-point comparisons tolerant of tiny rounding differences.
 #define CHECK(condition)                                              \
     do {                                                              \
         if (!(condition)) {                                           \
@@ -20,143 +27,195 @@ static int failures = 0;
         }                                                             \
     } while (0)
 
-static bool near(double a, double b) { return std::fabs(a - b) < 1e-9; }
-
-// Check that each feature column is independently mapped into [0, 1].
-static void testOrdinaryValues() {
-    Dataset d;
-    d.features = {{10.0, 0.0}, {20.0, 50.0}, {30.0, 100.0}};
-    d.labels = {1, -1, 1};
-
-    Scaler s;
-    Dataset out = s.fitTransform(d);
-
-    CHECK(near(out.features[0][0], 0.0));
-    CHECK(near(out.features[1][0], 0.5));
-    CHECK(near(out.features[2][0], 1.0));
-    CHECK(near(out.features[1][1], 0.5));
-    CHECK(out.features.size() == 3);
-    CHECK(out.labels == d.labels);
+static bool near(double value, double expected) {
+    return std::fabs(value - expected) < 1e-9;
 }
 
-// A constant column has a zero range and is defined to scale to all zeros.
-static void testConstantFeature() {
-    Dataset d;
-    d.features = {{5.0, 1.0}, {5.0, 2.0}};
-    d.labels = {1, -1};
+class OrdinaryValuesTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{10.0, 0.0}, {20.0, 50.0}, {30.0, 100.0}};
+        dataset.labels = {1, -1, 1};
 
-    Scaler s;
-    Dataset out = s.fitTransform(d);
+        Scaler scaler;
+        Dataset scaled = scaler.fitTransform(dataset);
 
-    CHECK(near(out.features[0][0], 0.0));
-    CHECK(near(out.features[1][0], 0.0));
-    CHECK(near(out.features[1][1], 1.0));
-}
-
-// transform() must reuse min/max learned from training, not refit on new rows.
-static void testSameParametersOnNewData() {
-    Dataset train;
-    train.features = {{0.0}, {10.0}};
-    train.labels = {1, -1};
-    Scaler s;
-    s.fit(train);
-
-    Dataset fresh;
-    fresh.features = {{5.0}};
-    fresh.labels = {1};
-    CHECK(near(s.transform(fresh).features[0][0], 0.5));
-}
-
-// Fitting requires at least one valid row.
-static void testEmptyInput() {
-    Scaler s;
-    bool threw = false;
-    try { s.fit(Dataset{}); } catch (const std::invalid_argument&) { threw = true; }
-    CHECK(threw);
-}
-
-// The scaler cannot compare columns when rows have different widths.
-static void testInconsistentRows() {
-    Dataset d;
-    d.features = {{1.0, 2.0}, {3.0}};
-    d.labels = {1, -1};
-    Scaler s;
-    bool threw = false;
-    try { s.fit(d); } catch (const std::invalid_argument&) { threw = true; }
-    CHECK(threw);
-}
-
-// Non-finite measurements cannot define reliable min/max bounds.
-static void testNonFiniteValue() {
-    Dataset d;
-    d.features = {{1.0}, {std::numeric_limits<double>::quiet_NaN()}};
-    d.labels = {1, -1};
-    Scaler s;
-    bool threw = false;
-    try { s.fit(d); } catch (const std::invalid_argument&) { threw = true; }
-    CHECK(threw);
-}
-static void testMismatchedLabels() {
-    Dataset d;
-    d.features = {{1.0}, {2.0}};
-    d.labels = {1};
-
-    Scaler s;
-    bool threw = false;
-
-    try {
-        s.fit(d);
-    } catch (const std::invalid_argument&) {
-        threw = true;
+        CHECK(near(scaled.features[0][0], 0.0));
+        CHECK(near(scaled.features[1][0], 0.5));
+        CHECK(near(scaled.features[2][0], 1.0));
+        CHECK(near(scaled.features[1][1], 0.5));
+        CHECK(scaled.features.size() == 3);
+        CHECK(scaled.labels == dataset.labels);
     }
+};
 
-    CHECK(threw);
-}
-// Transforming requires the same number of columns used during fit().
-static void testWrongFeatureCount() {
-    Dataset train;
-    train.features = {{1.0, 2.0}, {3.0, 4.0}};
-    train.labels = {1, -1};
+class ConstantFeatureTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{5.0, 1.0}, {5.0, 2.0}};
+        dataset.labels = {1, -1};
 
-    Scaler s;
-    s.fit(train);
+        Scaler scaler;
+        Dataset scaled = scaler.fitTransform(dataset);
 
-    Dataset test;
-    test.features = {{5.0}};
-    test.labels = {1};
-
-    bool threw = false;
-
-    try {
-        s.transform(test);
-    } catch (const std::invalid_argument&) {
-        threw = true;
+        CHECK(near(scaled.features[0][0], 0.0));
+        CHECK(near(scaled.features[1][0], 0.0));
+        CHECK(near(scaled.features[1][1], 1.0));
     }
+};
 
-    CHECK(threw);
-}
-// The scaler has no bounds to apply until fit() has been called.
-static void testTransformBeforeFit() {
-    Dataset d;
-    d.features = {{1.0}};
-    d.labels = {1};
-    Scaler s;
-    bool threw = false;
-    try { s.transform(d); } catch (const std::logic_error&) { threw = true; }
-    CHECK(threw);
-}
+class SameParametersOnNewDataTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset trainingData;
+        trainingData.features = {{0.0}, {10.0}};
+        trainingData.labels = {1, -1};
+        Scaler scaler;
+        scaler.fit(trainingData);
+
+        Dataset newData;
+        newData.features = {{5.0}};
+        newData.labels = {1};
+        CHECK(near(scaler.transform(newData).features[0][0], 0.5));
+    }
+};
+
+class EmptyInputTest final : public TestCase {
+public:
+    void run() const override {
+        Scaler scaler;
+        bool threw = false;
+        try {
+            scaler.fit(Dataset{});
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+class InconsistentRowsTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{1.0, 2.0}, {3.0}};
+        dataset.labels = {1, -1};
+        Scaler scaler;
+        bool threw = false;
+        try {
+            scaler.fit(dataset);
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+class NonFiniteValueTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{1.0}, {std::numeric_limits<double>::quiet_NaN()}};
+        dataset.labels = {1, -1};
+        Scaler scaler;
+        bool threw = false;
+        try {
+            scaler.fit(dataset);
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+class MismatchedLabelsTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{1.0}, {2.0}};
+        dataset.labels = {1};
+
+        Scaler scaler;
+        bool threw = false;
+        try {
+            scaler.fit(dataset);
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+class WrongFeatureCountTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset trainingData;
+        trainingData.features = {{1.0, 2.0}, {3.0, 4.0}};
+        trainingData.labels = {1, -1};
+
+        Scaler scaler;
+        scaler.fit(trainingData);
+
+        Dataset testData;
+        testData.features = {{5.0}};
+        testData.labels = {1};
+
+        bool threw = false;
+        try {
+            scaler.transform(testData);
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+class TransformBeforeFitTest final : public TestCase {
+public:
+    void run() const override {
+        Dataset dataset;
+        dataset.features = {{1.0}};
+        dataset.labels = {1};
+        Scaler scaler;
+        bool threw = false;
+        try {
+            scaler.transform(dataset);
+        } catch (const std::logic_error&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+};
+
+} // namespace
 
 int main() {
-    // Run normal behavior and error-path checks.
-    testOrdinaryValues();
-    testConstantFeature();
-    testSameParametersOnNewData();
-    testEmptyInput();
-    testInconsistentRows();
-    testNonFiniteValue();
-    testMismatchedLabels();
-    testWrongFeatureCount();
-    testTransformBeforeFit();
+    OrdinaryValuesTest ordinaryTest;
+    ConstantFeatureTest constantTest;
+    SameParametersOnNewDataTest newDataTest;
+    EmptyInputTest emptyTest;
+    InconsistentRowsTest inconsistentRowsTest;
+    NonFiniteValueTest nonFiniteTest;
+    MismatchedLabelsTest mismatchedLabelsTest;
+    WrongFeatureCountTest wrongFeatureCountTest;
+    TransformBeforeFitTest transformBeforeFitTest;
+    TestCase* tests[] = {
+        &ordinaryTest,
+        &constantTest,
+        &newDataTest,
+        &emptyTest,
+        &inconsistentRowsTest,
+        &nonFiniteTest,
+        &mismatchedLabelsTest,
+        &wrongFeatureCountTest,
+        &transformBeforeFitTest
+    };
+
+    for (const auto* test : tests) {
+        test->run();
+    }
 
     if (failures == 0) {
         std::cout << "All scaler tests passed\n";

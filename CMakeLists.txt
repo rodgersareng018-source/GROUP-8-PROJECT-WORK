@@ -45,7 +45,7 @@ set(EDUSVM_TESTS
     test_evaluation
 )
 
-enable_testing()
+include(CTest)
 foreach(test_name IN LISTS EDUSVM_TESTS)
    add_executable(${test_name} tests/${test_name}.cpp)
    target_link_libraries(${test_name} PRIVATE edusvm_lib)

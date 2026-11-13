@@ -8,38 +8,33 @@
 #include <string>
 
 namespace {
-// Keep command-line errors on stderr so they are easy to distinguish from results.
 void reportFailure(const std::string& message) {
     std::cerr << "Error: " << message << '\n';
 }
 } // namespace
 
 int main(int argc, char* argv[]) {
-    // Accept zero or one optional argument: the CSV file to evaluate.
     if (argc > 2) {
         std::cerr << "Usage: edusvm [path-to-csv]\n";
         return 2;
     }
 
-    // Use the sample file when the user does not provide a path.
     const std::string csvPath =
         argc == 2 ? argv[1] : "data/input/students.csv";
     std::string errorMessage;
     edusvm::Dataset loaded;
-    if (!edusvm::loadDatasetCsv(csvPath, loaded, errorMessage)) {
+    if (!edusvm::DatasetLoader::loadFromCSV(
+            csvPath, loaded, errorMessage)) {
         reportFailure(errorMessage);
         return 1;
     }
 
-    // Validate the loaded rows before any model or scaling work.
     edusvm::Dataset validated;
     if (!edusvm::preprocessDataset(loaded, validated, errorMessage)) {
         reportFailure(errorMessage);
         return 1;
     }
 
-    // Choose as many folds as possible, up to five, while keeping both labels
-    // represented in every validation fold.
     std::size_t negativeCount = 0;
     std::size_t positiveCount = 0;
     for (int label : validated.labels) {
@@ -62,7 +57,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Cross-validation pools predictions from rows held out during each fit.
     std::cout << "EduSVM student performance classifier\n"
               << "CSV: " << csvPath << '\n'
               << "Rows: " << validated.features.size()

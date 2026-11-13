@@ -10,22 +10,19 @@
 
 namespace edusvm {
 
-// Linear model: score a row by weights dot features plus bias.
+// The learned decision boundary: weights dot features plus bias.
 struct Hyperplane {
     std::vector<double> weights;
     double bias = 0.0;
-    // Indices of training rows close to the learned decision margin.
     std::vector<std::size_t> supportVectorIndices;
 };
 
-// Tunable settings used by gradient-based training.
 struct TrainingOptions {
     double lambda = 0.01;
     double learningRate = 0.1;
     std::size_t epochs = 1000;
 };
 
-// Learn a linear SVM from labeled rows and return its weights and bias.
 bool trainSvm(
     const Dataset& trainingData,
     const TrainingOptions& options,
@@ -33,7 +30,6 @@ bool trainSvm(
     std::string& errorMessage
 );
 
-// Calculate the signed model score; zero lies on the decision boundary.
 bool decisionFunction(
     const Hyperplane& model,
     const std::vector<double>& features,
@@ -41,7 +37,6 @@ bool decisionFunction(
     std::string& errorMessage
 );
 
-// Calculate label * score; correctly classified points have positive margin.
 bool calculateFunctionalMargin(
     const Hyperplane& model,
     const std::vector<double>& features,
@@ -50,7 +45,6 @@ bool calculateFunctionalMargin(
     std::string& errorMessage
 );
 
-// Convert a decision score to the project's +1 or -1 class label.
 bool predictLabel(
     const Hyperplane& model,
     const std::vector<double>& features,
@@ -58,8 +52,6 @@ bool predictLabel(
     std::string& errorMessage
 );
 
-// Evaluate every row once using deterministic, label-balanced folds.
-// Scaling is fitted only on each fold's training rows.
 bool crossValidateSvm(
     const Dataset& data,
     std::size_t foldCount,
