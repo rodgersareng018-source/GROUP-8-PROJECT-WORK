@@ -2,11 +2,22 @@
 #define EDUSVM_PREPROCESSOR_HPP
 
 #include "edusvm/dataset.hpp"
+#include "edusvm/preprocessor_base.hpp"
 #include <string>
 
 namespace edusvm {
 
-// Validate a dataset and copy it to output when all rows are usable.
+class DatasetPreprocessor final : public Preprocessor {
+public:
+    DatasetPreprocessor();
+
+    bool process(
+        const Dataset& input,
+        Dataset& output,
+        std::string& errorMessage
+    ) const override;
+};
+
 bool preprocessDataset(
     const Dataset& input,
     Dataset& output,

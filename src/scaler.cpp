@@ -7,15 +7,14 @@ namespace edusvm {
 
 namespace {
 
-// Throws std::invalid_argument if the dataset is not usable.
-// If expectedFeatures > 0, every row must have exactly that many features.
-void validate(const Dataset& data, std::size_t expectedFeatures) {
+void validateData(const Dataset& data, std::size_t expectedFeatures) {
     if (data.features.empty()) {
         throw std::invalid_argument("Scaler: dataset is empty");
     }
     if (data.labels.size() != data.features.size()) {
         throw std::invalid_argument("Scaler: labels and rows count differ");
     }
+
     const std::size_t width = data.features[0].size();
     if (width == 0) {
         throw std::invalid_argument("Scaler: rows have no features");
@@ -23,6 +22,7 @@ void validate(const Dataset& data, std::size_t expectedFeatures) {
     if (expectedFeatures != 0 && width != expectedFeatures) {
         throw std::invalid_argument("Scaler: wrong number of features");
     }
+
     for (const auto& row : data.features) {
         if (row.size() != width) {
             throw std::invalid_argument("Scaler: rows have different sizes");
@@ -38,9 +38,9 @@ void validate(const Dataset& data, std::size_t expectedFeatures) {
 }  // namespace
 
 void Scaler::fit(const Dataset& data) {
-    validate(data, 0);
+    validateData(data, 0);
 
-    // Initialize bounds from a real row, then expand them feature by feature.
+    // Start with the first row, then update each feature's bounds.
     const std::size_t width = data.features[0].size();
     min_ = data.features[0];
     max_ = data.features[0];
@@ -58,15 +58,13 @@ Dataset Scaler::transform(const Dataset& data) const {
     if (!fitted_) {
         throw std::logic_error("Scaler: call fit() before transform()");
     }
-    validate(data, min_.size());
+    validateData(data, min_.size());
 
-    // Copy first so scaling never mutates the caller's original dataset.
     Dataset result = data;
     for (auto& row : result.features) {
         for (std::size_t j = 0; j < row.size(); ++j) {
-            // A constant column has no range; map it to zero instead of
-            // dividing by zero.
             const double range = max_[j] - min_[j];
+            // A constant feature has no range, so map it to zero.
             row[j] = (range == 0.0) ? 0.0 : (row[j] - min_[j]) / range;
         }
     }

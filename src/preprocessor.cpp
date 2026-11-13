@@ -1,33 +1,31 @@
 
-#include "edusvm/preprocessor_strategies.hpp"
-#include <limits>
 #include "edusvm/preprocessor.hpp"
-
+#include "edusvm/preprocessor_strategies.hpp"
 #include <cmath>
+#include <limits>
 #include <string>
 
 namespace edusvm {
 
-// Check every row before copying the dataset, preventing invalid indexing and
-// ensuring callers either receive a fully validated copy or a clear error.
-bool preprocessDataset(
+DatasetPreprocessor::DatasetPreprocessor()
+    : Preprocessor("Dataset Validation") {}
+
+bool DatasetPreprocessor::process(
     const Dataset& input,
     Dataset& output,
     std::string& errorMessage
- ) {
+) const {
     if (input.features.empty()) {
         errorMessage = "Preprocessing failed: dataset is empty.";
         return false;
     }
 
-    // Check this before looking up labels by row index.
     if (input.features.size() != input.labels.size()) {
         errorMessage =
             "Preprocessing failed: number of labels does not match number of rows.";
         return false;
     }
 
-    // Use the first row as the expected feature width for every student.
     std::size_t expectedFeatures = input.features[0].size();
     if (expectedFeatures == 0) {
         errorMessage =
@@ -47,7 +45,9 @@ bool preprocessDataset(
 
         for (double val : sample) {
             if (!std::isfinite(val)) {
-                errorMessage = "Preprocessing failed: non-finite value at row " + std::to_string(i) + ".";
+                errorMessage =
+                    "Preprocessing failed: non-finite value at row "
+                    + std::to_string(i) + ".";
                 return false;
             }
         }
@@ -60,11 +60,19 @@ bool preprocessDataset(
         }
     }
 
-    // Preserve the input unchanged; this stage validates rather than modifies.
     output = input;
     errorMessage.clear();
 
     return true;
+}
+
+bool preprocessDataset(
+    const Dataset& input,
+    Dataset& output,
+    std::string& errorMessage
+) {
+    DatasetPreprocessor validator;
+    return validator.process(input, output, errorMessage);
 }
 
 } // namespace edusvm

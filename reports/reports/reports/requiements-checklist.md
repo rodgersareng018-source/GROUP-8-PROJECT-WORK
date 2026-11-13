@@ -1,5 +1,9 @@
 EduSVM Requirements Checklist
 
+> Historical review snapshot. These statuses reflect the code at the time of
+> review and are superseded by `README.md` and `reports/final-project-report.md`.
+> The original review is kept as a record of the project's progress.
+
 Status key: Done / Partial / Missing. Reviewed by Vivian.
 A feature is marked Done only if the code exists and its test passes.
  Test results are from Monica's/Rodgers's ctest output, not run by me.

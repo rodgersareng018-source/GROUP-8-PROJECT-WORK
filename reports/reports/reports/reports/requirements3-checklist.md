@@ -1,4 +1,8 @@
 
+> Historical review snapshot. These statuses reflect the code at the time of
+> review and are superseded by `README.md` and `reports/final-project-report.md`.
+> The original review is kept as a record of the project's progress.
+
 1.Reusable C++ library with a public interface
 Group:
 include/edusvm/*.hpp, CMake target edusvm

@@ -6,8 +6,7 @@
 
 namespace edusvm {
 
-// Compute max(0, 1 - label * (weights dot features + bias)).
-// Returns false for mismatched dimensions, invalid labels, or non-finite inputs.
+// Calculate max(0, 1 - label * score) for one row.
 bool calculateHingeLoss(
     const std::vector<double>& weights,
     double bias,

@@ -1,32 +1,29 @@
 
 #include <iostream>
+#include <string>
 
 #include "edusvm/preprocessor_strategies.hpp"
 
 int main() {
-    // A small dataset containing two numeric features per student.
-    edusvm::Dataset data;
+    edusvm::Dataset dataset;
 
-    data.features = {
+    dataset.features = {
         {2.0, 50.0},
         {4.0, 60.0},
         {6.0, 70.0},
         {8.0, 80.0}
     };
 
-    data.labels = {-1, -1, 1, 1};
+    dataset.labels = {-1, -1, 1, 1};
 
-    // Each concrete class implements one operation from the Preprocessor API.
     edusvm::ValidationPreprocessor validation;
     edusvm::ScalingPreprocessor scaling;
 
-    // Base-class pointers let the same loop invoke different implementations.
     const edusvm::Preprocessor* processors[] = {
         &validation,
         &scaling
     };
 
-    // Run each processing strategy and display either output or its error.
     for (const auto* processor : processors) {
         edusvm::Dataset output;
         std::string errorMessage;
@@ -34,7 +31,7 @@ int main() {
         std::cout << "\nProcessing: "
                   << processor->getName() << '\n';
 
-        if (processor->process(data, output, errorMessage)) {
+        if (processor->process(dataset, output, errorMessage)) {
             std::cout << "Processing successful.\n";
             std::cout << "First feature values: ";
 

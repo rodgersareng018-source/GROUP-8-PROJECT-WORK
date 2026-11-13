@@ -6,119 +6,156 @@
 #include <iostream>
 #include <string>
 
-void testEvaluationMetrics() {
-    edusvm::Hyperplane model{{1.0}, 0.0};
+namespace {
 
-    edusvm::Dataset data;
-    data.features = {{2.0}, {-2.0}, {1.0}, {-1.0}};
-    data.labels = {1, -1, -1, 1};
+class TestCase {
+public:
+    virtual ~TestCase() = default;
+    virtual void run() const = 0;
+};
 
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+class EvaluationMetricsTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0}, 0.0};
 
-    assert(edusvm::evaluateModel(model, data, metrics, error));
+        edusvm::Dataset data;
+        data.features = {{2.0}, {-2.0}, {1.0}, {-1.0}};
+        data.labels = {1, -1, -1, 1};
 
-    assert(metrics.truePositives == 1);
-    assert(metrics.trueNegatives == 1);
-    assert(metrics.falsePositives == 1);
-    assert(metrics.falseNegatives == 1);
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    assert(std::abs(metrics.accuracy - 0.5) < 1e-9);
-    assert(std::abs(metrics.precision - 0.5) < 1e-9);
-    assert(std::abs(metrics.recall - 0.5) < 1e-9);
-    assert(std::abs(metrics.f1Score - 0.5) < 1e-9);
+        assert(edusvm::evaluateModel(model, data, metrics, error));
+        assert(metrics.truePositives == 1);
+        assert(metrics.trueNegatives == 1);
+        assert(metrics.falsePositives == 1);
+        assert(metrics.falseNegatives == 1);
+        assert(std::abs(metrics.accuracy - 0.5) < 1e-9);
+        assert(std::abs(metrics.precision - 0.5) < 1e-9);
+        assert(std::abs(metrics.recall - 0.5) < 1e-9);
+        assert(std::abs(metrics.f1Score - 0.5) < 1e-9);
 
-    std::cout << "[PASS] testEvaluationMetrics\n";
-}
+        std::cout << "[PASS] testEvaluationMetrics\n";
+    }
+};
 
-void testPerfectEvaluation() {
-    edusvm::Hyperplane model{{1.0}, 0.0};
+class PerfectEvaluationTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0}, 0.0};
 
-    edusvm::Dataset data;
-    data.features = {{2.0}, {-2.0}};
-    data.labels = {1, -1};
+        edusvm::Dataset data;
+        data.features = {{2.0}, {-2.0}};
+        data.labels = {1, -1};
 
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    assert(edusvm::evaluateModel(model, data, metrics, error));
+        assert(edusvm::evaluateModel(model, data, metrics, error));
+        assert(metrics.accuracy == 1.0);
+        assert(metrics.precision == 1.0);
+        assert(metrics.recall == 1.0);
+        assert(metrics.f1Score == 1.0);
 
-    assert(metrics.accuracy == 1.0);
-    assert(metrics.precision == 1.0);
-    assert(metrics.recall == 1.0);
-    assert(metrics.f1Score == 1.0);
+        std::cout << "[PASS] testPerfectEvaluation\n";
+    }
+};
 
-    std::cout << "[PASS] testPerfectEvaluation\n";
-}
+class EmptyDatasetTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0}, 0.0};
 
-void testEmptyDataset() {
-    edusvm::Hyperplane model{{1.0}, 0.0};
+        edusvm::Dataset data;
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    edusvm::Dataset data;
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+        assert(!edusvm::evaluateModel(model, data, metrics, error));
+        assert(!error.empty());
 
-    assert(!edusvm::evaluateModel(model, data, metrics, error));
-    assert(!error.empty());
+        std::cout << "[PASS] testEmptyDataset\n";
+    }
+};
 
-    std::cout << "[PASS] testEmptyDataset\n";
-}
+class MismatchedDatasetTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0}, 0.0};
 
-void testMismatchedDataset() {
-    edusvm::Hyperplane model{{1.0}, 0.0};
+        edusvm::Dataset data;
+        data.features = {{2.0}, {-2.0}};
+        data.labels = {1};
 
-    edusvm::Dataset data;
-    data.features = {{2.0}, {-2.0}};
-    data.labels = {1};
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+        assert(!edusvm::evaluateModel(model, data, metrics, error));
+        assert(!error.empty());
 
-    assert(!edusvm::evaluateModel(model, data, metrics, error));
-    assert(!error.empty());
+        std::cout << "[PASS] testMismatchedDataset\n";
+    }
+};
 
-    std::cout << "[PASS] testMismatchedDataset\n";
-}
+class InvalidLabelTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0}, 0.0};
 
-void testInvalidLabel() {
-    edusvm::Hyperplane model{{1.0}, 0.0};
+        edusvm::Dataset data;
+        data.features = {{2.0}};
+        data.labels = {0};
 
-    edusvm::Dataset data;
-    data.features = {{2.0}};
-    data.labels = {0};
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+        assert(!edusvm::evaluateModel(model, data, metrics, error));
+        assert(!error.empty());
 
-    assert(!edusvm::evaluateModel(model, data, metrics, error));
-    assert(!error.empty());
+        std::cout << "[PASS] testInvalidLabel\n";
+    }
+};
 
-    std::cout << "[PASS] testInvalidLabel\n";
-}
+class InvalidModelDimensionsTest final : public TestCase {
+public:
+    void run() const override {
+        edusvm::Hyperplane model{{1.0, 2.0}, 0.0};
 
-void testInvalidModelDimensions() {
-    edusvm::Hyperplane model{{1.0, 2.0}, 0.0};
+        edusvm::Dataset data;
+        data.features = {{2.0}};
+        data.labels = {1};
 
-    edusvm::Dataset data;
-    data.features = {{2.0}};
-    data.labels = {1};
+        edusvm::EvaluationMetrics metrics;
+        std::string error;
 
-    edusvm::EvaluationMetrics metrics;
-    std::string error;
+        assert(!edusvm::evaluateModel(model, data, metrics, error));
+        assert(!error.empty());
 
-    assert(!edusvm::evaluateModel(model, data, metrics, error));
-    assert(!error.empty());
+        std::cout << "[PASS] testInvalidModelDimensions\n";
+    }
+};
 
-    std::cout << "[PASS] testInvalidModelDimensions\n";
-}
+} // namespace
 
 int main() {
-    testEvaluationMetrics();
-    testPerfectEvaluation();
-    testEmptyDataset();
-    testMismatchedDataset();
-    testInvalidLabel();
-    testInvalidModelDimensions();
+    EvaluationMetricsTest metricsTest;
+    PerfectEvaluationTest perfectTest;
+    EmptyDatasetTest emptyTest;
+    MismatchedDatasetTest mismatchedTest;
+    InvalidLabelTest invalidLabelTest;
+    InvalidModelDimensionsTest dimensionsTest;
+    TestCase* tests[] = {
+        &metricsTest,
+        &perfectTest,
+        &emptyTest,
+        &mismatchedTest,
+        &invalidLabelTest,
+        &dimensionsTest
+    };
+
+    for (const auto* test : tests) {
+        test->run();
+    }
 
     std::cout << "ALL EVALUATION TESTS PASSED!\n";
     return 0;

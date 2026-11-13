@@ -6,22 +6,19 @@
 
 namespace edusvm {
 
-// Min-max feature scaler: x' = (x - min) / (max - min)
-// Policy: if a feature is constant (max == min), every value becomes 0.0.
+// Learns min/max values from training data and reuses them when scaling data.
 class Scaler {
 public:
-    // Learn the min and max of every feature from the data.
     void fit(const Dataset& data);
 
-    // Apply the learned min and max to a dataset (new copy returned).
     Dataset transform(const Dataset& data) const;
 
-    // fit() then transform() on the same data.
     Dataset fitTransform(const Dataset& data);
 
     bool isFitted() const { return fitted_; }
 
 private:
+    // These values come from the training dataset, not each new input.
     std::vector<double> min_;
     std::vector<double> max_;
     bool fitted_ = false;

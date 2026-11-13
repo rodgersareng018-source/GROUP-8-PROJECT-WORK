@@ -82,7 +82,7 @@ the destination dataset on failure.
 
 ## Project layout
 
-- `include/edusvm/` contains public data structures and module interfaces.
+- `include/edusvm/` contains public data structures, module interfaces, and classes.
 - `src/` implements CSV loading, validation, scaling, hinge loss, L2
   regularization, and SVM training/prediction/evaluation.
 - `main.cpp` connects those modules into the command-line demo.
@@ -91,6 +91,14 @@ the destination dataset on failure.
 - `data/input/students.csv` is the sample input dataset.
 - `examples/` contains standalone examples, and `reports/` contains project
   progress and review documents.
+
+## Object-oriented design
+
+`Preprocessor` defines a common virtual `process` operation. Validation,
+scaling, and imputation classes implement that operation in their own way.
+`Scaler` keeps its fitted feature bounds inside the object. SVM training,
+prediction, and cross-validation use helper classes behind the public
+functions, keeping the library interface simple.
 
 ## Classifier details and evaluation
 
@@ -123,8 +131,10 @@ dataset supplied to `trainSvm`.
 
 ## Useful interfaces
 
-- `loadDatasetCsv`: load and validate a CSV dataset.
+- `DatasetLoader::loadFromCSV` / `loadDatasetCsv`: load a CSV dataset.
 - `preprocessDataset` / `validateDataset`: validate rows, labels, and values.
+- `ValidationPreprocessor`, `ScalingPreprocessor`, and
+  `ImputationPreprocessor`: use the shared preprocessing interface.
 - `Scaler`: fit and apply min-max feature scaling.
 - `calculateHingeLoss` and `calculateL2Regularization`: compute individual
   objective components.

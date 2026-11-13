@@ -6,7 +6,6 @@
 
 namespace edusvm {
 
-// Adapt the standalone validation function to the common strategy interface.
 bool ValidationPreprocessor::process(
     const Dataset& input,
     Dataset& output,
@@ -15,8 +14,6 @@ bool ValidationPreprocessor::process(
     return preprocessDataset(input, output, errorMessage);
 }
 
-// Fit a scaler on this dataset and return a scaled copy; convert scaler
-// exceptions into the error-message convention used by Preprocessor.
 bool ScalingPreprocessor::process(
     const Dataset& input,
     Dataset& output,
@@ -43,7 +40,6 @@ bool ImputationPreprocessor::process(
     Dataset& output,
     std::string& errorMessage
 ) const {
-
     if (input.features.empty()) {
         errorMessage = "Imputation failed: dataset is empty.";
         return false;
@@ -55,7 +51,6 @@ bool ImputationPreprocessor::process(
     }
 
     const std::size_t featureCount = input.features[0].size();
-
     if (featureCount == 0) {
         errorMessage = "Imputation failed: dataset has no features.";
         return false;
@@ -83,9 +78,10 @@ bool ImputationPreprocessor::process(
         }
     }
 
-    Dataset result;
+    Dataset result = input;
 
     if (strategy_ == ImputationStrategy::MEAN) {
+        // Find each column's mean using only values that are not missing.
         std::vector<double> sums(featureCount, 0.0);
         std::vector<std::size_t> counts(featureCount, 0);
 
@@ -99,7 +95,6 @@ bool ImputationPreprocessor::process(
         }
 
         std::vector<double> means(featureCount);
-
         for (std::size_t j = 0; j < featureCount; ++j) {
             if (counts[j] == 0) {
                 errorMessage = "Imputation failed: a feature column contains only missing values.";
@@ -107,14 +102,11 @@ bool ImputationPreprocessor::process(
             }
 
             means[j] = sums[j] / counts[j];
-
             if (!std::isfinite(means[j])) {
                 errorMessage = "Imputation failed: calculated mean is not finite.";
                 return false;
             }
         }
-
-        result = input;
 
         for (auto& row : result.features) {
             for (std::size_t j = 0; j < featureCount; ++j) {
@@ -125,9 +117,12 @@ bool ImputationPreprocessor::process(
         }
     }
     else if (strategy_ == ImputationStrategy::DROP_ROW) {
+        // Keep only rows that have no missing feature values.
+        result.features.clear();
+        result.labels.clear();
+
         for (std::size_t i = 0; i < input.features.size(); ++i) {
             bool hasMissingValue = false;
-
             for (double value : input.features[i]) {
                 if (std::isnan(value)) {
                     hasMissingValue = true;

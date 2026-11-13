@@ -7,7 +7,7 @@
 
 namespace edusvm {
 
-// One feature row and one binary label correspond to each student.
+// Features and labels at the same index belong to the same row.
 struct Dataset {
     std::vector<std::vector<double>> features;
     std::vector<int> labels;
@@ -17,11 +17,9 @@ struct Dataset {
     }
 };
 
-// Loads numerical features and binary labels from a CSV file.
-// The first row must contain column headings.
-// The final column must contain labels (-1 or +1).
 class DatasetLoader {
 public:
+    // Load a CSV file into a dataset and return an error message on failure.
     static bool loadFromCSV(
         const std::string& filePath,
         Dataset& dataset,
@@ -34,7 +32,6 @@ bool validateDataset(
     std::string& errorMessage
 );
 
-// Read a CSV whose final column is named "label"; replace dataset only on success.
 bool loadDatasetCsv(
     const std::string& filePath,
     Dataset& dataset,
