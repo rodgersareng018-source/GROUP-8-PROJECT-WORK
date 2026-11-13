@@ -20,7 +20,8 @@ set of module tests. Its intended flow is:
 
 ## 2. Project structure
 
-- `include/edusvm/` contains public data structures and function declarations.
+- `include/edusvm/` contains public data structures, class interfaces, and
+  function declarations.
 - `src/` contains the corresponding library implementations.
 - `main.cpp` connects the library into a command-line program.
 - `tests/` contains standalone tests, including `test_svm.cpp`.
@@ -42,11 +43,11 @@ a two-dimensional vector of numbers. Each inner vector is one student's
 feature row. A separate labels vector stores the corresponding `-1` or `+1`
 class for each row.
 
-`loadDatasetCsv` in `src/dataset.cpp` reads the header and data rows. The last
-header must be named `label`; earlier columns are treated as features. It
-checks the row widths, parses numeric feature values, rejects non-finite
-values and invalid labels, and only replaces the caller's dataset after the
-entire file has loaded successfully.
+`DatasetLoader::loadFromCSV` and `loadDatasetCsv` in `src/dataset.cpp` read the
+header and data rows. The last header must be named `label`; earlier columns
+are treated as features. The loader checks row widths, parses numeric feature
+values, rejects non-finite values and invalid labels, and only replaces the
+caller's dataset after the entire file has loaded successfully.
 
 `validateDataset` checks that the dataset is non-empty, every row has the same
 non-zero number of features, the feature and label counts match, every
@@ -55,9 +56,11 @@ feature is finite, and every label is `-1` or `+1`.
 ### Preprocessing and scaling
 
 `preprocessDataset` in `src/preprocessor.cpp` verifies the data before
-training and copies it to its output when valid. The strategy classes in
-`preprocessor_base.hpp` and `preprocessor_strategies.hpp` provide a common
-interface for validation and scaling steps.
+training and copies it to its output when valid. `Preprocessor` defines a
+virtual `process` operation. Validation, scaling, and imputation classes
+implement that interface, so callers can use each operation through the same
+base-class API. Imputation can replace missing values with column means or
+drop rows that contain missing values.
 
 `Scaler`, declared in `include/edusvm/scaler.hpp` and implemented in
 `src/scaler.cpp`, learns a minimum and maximum for each feature column. It
@@ -84,6 +87,9 @@ The public SVM declarations are in `include/edusvm/svm.hpp`. Training,
 prediction, and cross-validation are implemented in `src/svm.cpp`. The
 evaluation API and its `EvaluationMetrics` type are declared in
 `include/edusvm/evaluation.hpp` and implemented in `src/evaluation.cpp`.
+The implementation separates training, decision evaluation, margin
+calculation, prediction, and cross-validation into helper classes. The public
+functions provide a simple interface to those operations.
 
 - `Hyperplane` contains a weight for each feature, a bias, and indices of
   training rows identified near the decision margin.
@@ -116,6 +122,26 @@ folds while requiring at least two records from each class, calls
 matrix. The sample data has only six records, so its reported metrics are
 demonstrative and not a reliable estimate of real-world performance.
 
+### Scope coverage
+
+The following table maps the eleven main scope areas to their implementation
+and tests. It ends with module evaluation; cross-validation is included as an
+evaluation workflow rather than counted as another scope area.
+
+| Scope area | Implementation | Tests |
+|---|---|---|
+| 1. Dataset loading | `DatasetLoader::loadFromCSV` and `loadDatasetCsv` in `src/dataset.cpp` | `test_dataset_csv.cpp` |
+| 2. Dataset validation | `DatasetValidator` and `validateDataset` | `test_dataset_basic.cpp`, `test_dataset_edges.cpp` |
+| 3. Validation preprocessing | `DatasetPreprocessor` implements the `Preprocessor` interface | `test_preprocessor.cpp`, `test_oop.cpp` |
+| 4. Missing-value imputation | `ImputationPreprocessor` supports mean replacement and dropping rows | `test_preprocessor.cpp` |
+| 5. Feature scaling | `Scaler::fit`, `transform`, and `fitTransform` | `test_scaler.cpp` |
+| 6. Hyperplane and margins | `Hyperplane`, `decisionFunction`, and `calculateFunctionalMargin` | `test_svm.cpp` |
+| 7. Hinge loss | `calculateHingeLoss` | `test_loss.cpp` |
+| 8. L2 regularization | `calculateL2Regularization` | `test_regularization.cpp` |
+| 9. Training and binary prediction | `trainSvm` and `predictLabel` use labels `-1` and `+1` | `test_svm.cpp` |
+| 10. Support-vector identification | `supportVectorIndices` stores training rows with functional margin at most `1.01` | `test_svm.cpp` checks that training identifies support vectors |
+| 11. Module evaluation | `evaluateModel` calculates metrics; `crossValidateSvm` supplies pooled held-out predictions | `test_evaluation.cpp`, `test_svm.cpp` |
+
 ## 4. SVM test implementation
 
 The SVM implementation is **not** inside a test file under `src/`. Training,
@@ -134,10 +160,10 @@ The current `tests/test_svm.cpp` includes cases intended to check:
 7. Cross-validation producing one held-out prediction per row and rejecting
    more folds than the class counts allow.
 
-The test cases are now organized into independent functions that own their
-test data and are called by `main`. This avoids the previous scope error, in
-which test code referred to a model local to another function, and ensures the
-training, prediction, evaluation, and cross-validation cases actually run.
+The test cases are separate classes derived from a shared `TestCase` interface.
+Each class owns its test data and overrides `run()`. The test program calls
+them through base-class pointers, demonstrating runtime polymorphism while
+keeping each case independent.
 
 ## 5. Build, tests, and current status
 
