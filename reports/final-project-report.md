@@ -176,14 +176,14 @@ in `include/edusvm/` provide the declarations shared by those source files.
 
 | Source file | Main responsibility |
 |---|---|
-| `src/dataset.cpp` | Reads CSV files and checks dataset contents. |
-| `src/preprocessor.cpp` | Implements dataset validation preprocessing. |
-| `src/preprocessor_strategies.cpp` | Implements validation, scaling, and missing-value strategies. |
-| `src/scaler.cpp` | Learns feature ranges and scales dataset values. |
-| `src/loss.cpp` | Calculates hinge loss. |
-| `src/regularization.cpp` | Calculates the L2 penalty. |
-| `src/svm.cpp` | Trains the model, predicts labels, calculates margins, and runs cross-validation. |
-| `src/evaluation.cpp` | Calculates confusion counts and classification metrics. |
+| `src/dataset.cpp` | Loads `students.csv`, checks its `label` column and feature rows, and rejects malformed or invalid student records. |
+| `src/preprocessor.cpp` | Implements the validation step `main.cpp` applies after loading, before the records reach cross-validation. |
+| `src/preprocessor_strategies.cpp` | Implements the validation, scaling, mean-imputation, and drop-row strategies available through `Preprocessor`. |
+| `src/scaler.cpp` | Learns per-feature minimums and maximums from training rows and applies them to validation rows. |
+| `src/loss.cpp` | Calculates the hinge loss for one student row and a supplied model. |
+| `src/regularization.cpp` | Calculates the L2 penalty for a supplied weight vector. |
+| `src/svm.cpp` | Trains the linear classifier, calculates scores and margins, predicts `-1/+1`, and manages stratified cross-validation folds. |
+| `src/evaluation.cpp` | Compares predicted and known PASS/FAIL labels and calculates pooled classification metrics. |
 
 CMake links the compiled library sources into `edusvm_lib`. It then compiles
 `main.cpp` and links it with that library to create the `edusvm` executable.
@@ -194,10 +194,11 @@ test.
 ### What happens when the program runs
 
 `main.cpp` accepts a CSV path, or uses `data/input/students.csv` when no path
-is supplied. It calls `DatasetLoader::loadFromCSV` from `src/dataset.cpp`,
-then validates and copies the data through `preprocessDataset` in
-`src/preprocessor.cpp`. It chooses up to five folds, requiring at least two
-rows from each label.
+is supplied. The sample has study-hours, attendance, and assignment-score
+features, with `+1` for PASS and `-1` for FAIL. The program calls
+`DatasetLoader::loadFromCSV` from `src/dataset.cpp`, then validates and copies
+the records through `preprocessDataset` in `src/preprocessor.cpp`. It chooses
+up to five folds, requiring at least two student records from each label.
 
 Next, `crossValidateSvm` in `src/svm.cpp` creates the folds. For each fold it
 fits a `Scaler` using only the training rows, trains a model with
@@ -257,15 +258,15 @@ files in `src/` are described in the compilation table in Section 5, and
 
 | File | What it contains |
 |---|---|
-| `include/edusvm/dataset.hpp` | The `Dataset` structure, CSV loader class, and dataset validation/loading declarations. |
-| `include/edusvm/evaluation.hpp` | The `EvaluationMetrics` structure and model-evaluation declaration. |
-| `include/edusvm/loss.hpp` | The hinge-loss function declaration. |
-| `include/edusvm/preprocessor.hpp` | The dataset-validation preprocessor class and compatibility function. |
-| `include/edusvm/preprocessor_base.hpp` | The abstract `Preprocessor` class and virtual `process` interface. |
-| `include/edusvm/preprocessor_strategies.hpp` | The validation, scaling, and missing-value strategy classes and imputation options. |
-| `include/edusvm/regularization.hpp` | The L2-regularization function declaration. |
-| `include/edusvm/scaler.hpp` | The `Scaler` class interface for fitting and applying feature ranges. |
-| `include/edusvm/svm.hpp` | The model and training-option structures and SVM operation declarations. |
+| `include/edusvm/dataset.hpp` | Defines how the program stores each student's feature row and `-1/+1` label, and declares CSV loading and validation. |
+| `include/edusvm/evaluation.hpp` | Defines the confusion counts and accuracy, precision, recall, and F1-score returned after predictions are checked. |
+| `include/edusvm/loss.hpp` | Declares the per-student hinge-loss calculation used by examples and library callers. |
+| `include/edusvm/preprocessor.hpp` | Declares the class that checks student data before it is sent to training or evaluation. |
+| `include/edusvm/preprocessor_base.hpp` | Declares the shared `process` operation used by the preprocessing classes. |
+| `include/edusvm/preprocessor_strategies.hpp` | Declares the validation, scaling, and missing-value strategies, including mean and drop-row choices. |
+| `include/edusvm/regularization.hpp` | Declares the separate L2 penalty calculation for model weights. |
+| `include/edusvm/scaler.hpp` | Declares the object that keeps training-data feature ranges for reuse on held-out rows. |
+| `include/edusvm/svm.hpp` | Defines the linear model and training settings and declares training, scoring, prediction, margins, and cross-validation. |
 
 ### Tests
 
@@ -275,38 +276,38 @@ assertions to demonstrate polymorphism.
 
 | File | What it checks |
 |---|---|
-| `tests/test_dataset_basic.cpp` | Accepts a valid dataset and rejects empty data or mismatched label counts. |
-| `tests/test_dataset_csv.cpp` | Loads the sample CSV and rejects missing files or malformed numeric rows. |
-| `tests/test_dataset_edges.cpp` | Rejects missing features, uneven rows, NaN, infinity, and invalid labels. |
-| `tests/test_evaluation.cpp` | Checks confusion counts and scores for perfect, imperfect, empty, and invalid evaluation inputs. |
-| `tests/test_loss.cpp` | Checks hinge loss for positive and negative labels and rejects an invalid label. |
-| `tests/test_oop.cpp` | Calls validation and scaling through `Preprocessor` pointers to demonstrate runtime polymorphism. |
-| `tests/test_preprocessor.cpp` | Checks dataset validation plus mean and drop-row imputation behavior. |
-| `tests/test_regularization.cpp` | Checks a known L2 result and rejects invalid lambda or non-finite weights. |
-| `tests/test_scaler.cpp` | Checks ordinary and constant-feature scaling, fitted-state reuse, and invalid inputs. |
-| `tests/test_svm.cpp` | Checks decision scores, margins, training, prediction, evaluation, and cross-validation. |
+| `tests/test_dataset_basic.cpp` | Checks a small valid set of student rows and rejects empty rows or a label-count mismatch. |
+| `tests/test_dataset_csv.cpp` | Checks loading `students.csv`, a missing file, and a row with text instead of a numeric feature. |
+| `tests/test_dataset_edges.cpp` | Checks rejection of empty feature rows, uneven feature counts, NaN, infinity, and labels outside `-1/+1`. |
+| `tests/test_evaluation.cpp` | Checks PASS/FAIL confusion counts and metrics for perfect, mixed, empty, and invalid evaluation data. |
+| `tests/test_loss.cpp` | Checks hinge loss for `+1` and `-1` labels and rejection of label `0`. |
+| `tests/test_oop.cpp` | Calls the validation and scaling strategies through `Preprocessor` pointers, as in the OOP example. |
+| `tests/test_preprocessor.cpp` | Checks validated student rows and both missing-value choices: column mean and dropping a row. |
+| `tests/test_regularization.cpp` | Checks the expected L2 penalty and rejects a negative lambda or non-finite weight. |
+| `tests/test_scaler.cpp` | Checks min-max values, constant features, reuse of fitted ranges, and invalid scaler inputs. |
+| `tests/test_svm.cpp` | Checks model scores and margins, training and PASS/FAIL prediction, support-vector identification, and cross-validation. |
 
 ### Examples
 
 | File | What it demonstrates |
 |---|---|
-| `examples/end_to_end.cpp` | Loads CSV data, preprocesses it, splits training and test rows, scales, trains, predicts, and evaluates. |
-| `examples/example_calculations.cpp` | Runs validation, scaling, a fixed-model decision score, hinge loss, and L2 penalty on a small two-feature dataset. |
-| `examples/example_calculations_1.cpp` | Demonstrates the same calculations with a three-feature dataset. |
-| `examples/example_calculations (1).cpp` | A duplicate copy of the three-feature calculation example. |
-| `examples/example_dataset.cpp` | Builds a sample dataset and reports valid and invalid dataset cases. |
-| `examples/example_oop.cpp` | Applies validation and scaling strategies through their shared base-class interface. |
+| `examples/end_to_end.cpp` | Demonstrates loading the student CSV, validating it, splitting student rows, scaling, training, predicting, and evaluating. |
+| `examples/example_calculations.cpp` | Uses four two-feature student rows to show scaling, a fixed hyperplane score, hinge loss, and L2 penalty. |
+| `examples/example_calculations_1.cpp` | Repeats those calculations with a three-feature student dataset. |
+| `examples/example_calculations (1).cpp` | An additional copy of the three-feature calculation example. |
+| `examples/example_dataset.cpp` | Creates six sample student records, then shows validation of a valid set, an invalid label, and an uneven row. |
+| `examples/example_oop.cpp` | Runs the validation and scaling strategies on the same student data through the `Preprocessor` base class. |
 
 ### Other project files
 
 | File | What it contains |
 |---|---|
-| `CMakeLists.txt` | C++17 build rules for the library, demo, tests, CTest registration, and install package. |
-| `cmake/EduSVMConfig.cmake.in` | Template that lets another CMake project import the installed EduSVM library target. |
+| `CMakeLists.txt` | Builds the EduSVM library, command-line classifier, ten module tests, and CTest demo smoke test; it also defines installation rules. |
+| `cmake/EduSVMConfig.cmake.in` | Lets another CMake project find the installed `EduSVM::edusvm_lib` target. |
 | `.gitignore` | Build, executable, compiler, and temporary-file patterns that should not be committed. |
 | `.vscode/settings.json` | Enables Markdown validation in VS Code. |
 | `README.md` | Project overview, build instructions, CSV format, interfaces, classifier details, and limitations. |
-| `data/input/students.csv` | Six illustrative student rows used by the demo and CSV tests; it is not real student data. |
+| `data/input/students.csv` | Six illustrative student records with study hours, attendance, assignment scores, and PASS/FAIL labels; it is not real student data. |
 | `examples/.gitkeep`, `reports/.gitkeep`, `tests/.gitkeep` | Empty marker files that keep these directories in version control. |
 | `data/input/.gitkeep`, `data/output/.gitkeep` | Empty marker files that keep the input and output directories in version control. |
 | `week 3 ngor ahok ayuen` | A standalone Week 3 progress note about the SVM module and its tests. |
