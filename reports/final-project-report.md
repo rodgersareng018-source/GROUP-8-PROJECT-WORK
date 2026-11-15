@@ -165,15 +165,61 @@ Each class owns its test data and overrides `run()`. The test program calls
 them through base-class pointers, demonstrating runtime polymorphism while
 keeping each case independent.
 
-## 5. Build, tests, and current status
+## 5. Compilation and program flow
 
-The intended commands from the repository root are:
+### From source files to executables
+
+`CMakeLists.txt` selects C++17 and defines the library, demo, and test targets.
+During configuration, CMake prepares the build files for the selected compiler.
+During compilation, each `.cpp` file is compiled separately; the public headers
+in `include/edusvm/` provide the declarations shared by those source files.
+
+| Source file | Main responsibility |
+|---|---|
+| `src/dataset.cpp` | Reads CSV files and checks dataset contents. |
+| `src/preprocessor.cpp` | Implements dataset validation preprocessing. |
+| `src/preprocessor_strategies.cpp` | Implements validation, scaling, and missing-value strategies. |
+| `src/scaler.cpp` | Learns feature ranges and scales dataset values. |
+| `src/loss.cpp` | Calculates hinge loss. |
+| `src/regularization.cpp` | Calculates the L2 penalty. |
+| `src/svm.cpp` | Trains the model, predicts labels, calculates margins, and runs cross-validation. |
+| `src/evaluation.cpp` | Calculates confusion counts and classification metrics. |
+
+CMake links the compiled library sources into `edusvm_lib`. It then compiles
+`main.cpp` and links it with that library to create the `edusvm` executable.
+Each `tests/test_*.cpp` file is compiled into a separate test executable and
+linked to the same library. CTest runs those executables and the demo smoke
+test.
+
+### What happens when the program runs
+
+`main.cpp` accepts a CSV path, or uses `data/input/students.csv` when no path
+is supplied. It calls `DatasetLoader::loadFromCSV` from `src/dataset.cpp`,
+then validates and copies the data through `preprocessDataset` in
+`src/preprocessor.cpp`. It chooses up to five folds, requiring at least two
+rows from each label.
+
+Next, `crossValidateSvm` in `src/svm.cpp` creates the folds. For each fold it
+fits a `Scaler` using only the training rows, trains a model with
+`SvmTrainer`, and evaluates predictions on the held-out rows through
+`evaluateModel` in `src/evaluation.cpp`. The results are combined and printed
+as accuracy, precision, recall, F1-score, and confusion counts. If loading,
+validation, training, or evaluation fails, the program prints an error and
+exits with a non-zero status.
+
+### Build, run, and test
+
+Run these commands from the repository root:
 
 ```powershell
 cmake -S . -B build
 cmake --build build --config Debug
 ctest --test-dir build -C Debug --output-on-failure
+.\build\edusvm.exe data\input\students.csv
 ```
+
+Visual Studio generators usually place the executable in
+`build\Debug\edusvm.exe` instead.
 
 The project has CMake install rules for the library, headers, demo, sample
 CSV, and package files. The README documents how a downstream CMake project
@@ -199,3 +245,100 @@ checkout.
   with trusted labels before using the metrics to make performance claims.
 - Add more representative, genuinely labeled student records before drawing
   conclusions about real-world model performance.
+
+## 7. Project file guide
+
+This guide covers the maintained project files. The eight implementation
+files in `src/` are described in the compilation table in Section 5, and
+`main.cpp` is described in the program-flow section there. Generated files in
+`build/` and compiled `.exe` files are build outputs, not source files.
+
+### Public headers
+
+| File | What it contains |
+|---|---|
+| `include/edusvm/dataset.hpp` | The `Dataset` structure, CSV loader class, and dataset validation/loading declarations. |
+| `include/edusvm/evaluation.hpp` | The `EvaluationMetrics` structure and model-evaluation declaration. |
+| `include/edusvm/loss.hpp` | The hinge-loss function declaration. |
+| `include/edusvm/preprocessor.hpp` | The dataset-validation preprocessor class and compatibility function. |
+| `include/edusvm/preprocessor_base.hpp` | The abstract `Preprocessor` class and virtual `process` interface. |
+| `include/edusvm/preprocessor_strategies.hpp` | The validation, scaling, and missing-value strategy classes and imputation options. |
+| `include/edusvm/regularization.hpp` | The L2-regularization function declaration. |
+| `include/edusvm/scaler.hpp` | The `Scaler` class interface for fitting and applying feature ranges. |
+| `include/edusvm/svm.hpp` | The model and training-option structures and SVM operation declarations. |
+
+### Tests
+
+Each test executable has its own `main`. Most group checks into classes that
+implement the shared `TestCase` interface; `test_oop.cpp` uses direct
+assertions to demonstrate polymorphism.
+
+| File | What it checks |
+|---|---|
+| `tests/test_dataset_basic.cpp` | Accepts a valid dataset and rejects empty data or mismatched label counts. |
+| `tests/test_dataset_csv.cpp` | Loads the sample CSV and rejects missing files or malformed numeric rows. |
+| `tests/test_dataset_edges.cpp` | Rejects missing features, uneven rows, NaN, infinity, and invalid labels. |
+| `tests/test_evaluation.cpp` | Checks confusion counts and scores for perfect, imperfect, empty, and invalid evaluation inputs. |
+| `tests/test_loss.cpp` | Checks hinge loss for positive and negative labels and rejects an invalid label. |
+| `tests/test_oop.cpp` | Calls validation and scaling through `Preprocessor` pointers to demonstrate runtime polymorphism. |
+| `tests/test_preprocessor.cpp` | Checks dataset validation plus mean and drop-row imputation behavior. |
+| `tests/test_regularization.cpp` | Checks a known L2 result and rejects invalid lambda or non-finite weights. |
+| `tests/test_scaler.cpp` | Checks ordinary and constant-feature scaling, fitted-state reuse, and invalid inputs. |
+| `tests/test_svm.cpp` | Checks decision scores, margins, training, prediction, evaluation, and cross-validation. |
+
+### Examples
+
+| File | What it demonstrates |
+|---|---|
+| `examples/end_to_end.cpp` | Loads CSV data, preprocesses it, splits training and test rows, scales, trains, predicts, and evaluates. |
+| `examples/example_calculations.cpp` | Runs validation, scaling, a fixed-model decision score, hinge loss, and L2 penalty on a small two-feature dataset. |
+| `examples/example_calculations_1.cpp` | Demonstrates the same calculations with a three-feature dataset. |
+| `examples/example_calculations (1).cpp` | A duplicate copy of the three-feature calculation example. |
+| `examples/example_dataset.cpp` | Builds a sample dataset and reports valid and invalid dataset cases. |
+| `examples/example_oop.cpp` | Applies validation and scaling strategies through their shared base-class interface. |
+
+### Other project files
+
+| File | What it contains |
+|---|---|
+| `CMakeLists.txt` | C++17 build rules for the library, demo, tests, CTest registration, and install package. |
+| `cmake/EduSVMConfig.cmake.in` | Template that lets another CMake project import the installed EduSVM library target. |
+| `.gitignore` | Build, executable, compiler, and temporary-file patterns that should not be committed. |
+| `.vscode/settings.json` | Enables Markdown validation in VS Code. |
+| `README.md` | Project overview, build instructions, CSV format, interfaces, classifier details, and limitations. |
+| `data/input/students.csv` | Six illustrative student rows used by the demo and CSV tests; it is not real student data. |
+| `examples/.gitkeep`, `reports/.gitkeep`, `tests/.gitkeep` | Empty marker files that keep these directories in version control. |
+| `data/input/.gitkeep`, `data/output/.gitkeep` | Empty marker files that keep the input and output directories in version control. |
+| `week 3 ngor ahok ayuen` | A standalone Week 3 progress note about the SVM module and its tests. |
+
+### Reports
+
+Weekly reports and old checklists are historical records; some describe the
+project before training, evaluation, or imputation was added. The current
+implementation is described in this final report and the README.
+
+| File | What it contains |
+|---|---|
+| `reports/dataset-test-plan.md` | Dataset validation test cases and expected outcomes. |
+| `reports/final-project-report.md` | Current project design, scope coverage, compilation flow, and limitations. |
+| `reports/interface-review.md` | An earlier review of the public dataset interface and validation behavior. |
+| `reports/requiements-checklist.md` | A historical requirements checklist with its original status notes. |
+| `reports/week-01.md` | Week 1 progress, planned work, blockers, and AI-use notes. |
+| `reports/week-02.md` | Week 2 technical review of formulas, modules, and test/build status at that time. |
+| `reports/week-02-vivian.md` | Vivian's Week 2 formula review, findings, and recommendations. |
+| `reports/week2_martha_regularization.md` | Martha's Week 2 work on the L2 regularization module and its test. |
+| `reports/week3_martha.md` | A Week 3 explanation of the dataset-building and validation example. |
+| `reports/week_03_report_rachaelaloro.md` | Rachael's Week 3 feature-scaling work and verification notes. |
+| `reports/week-04.md` | Week 4 integration and OOP work, including the shared preprocessor design. |
+| `reports/week-04-charity.md` | Charity's Week 4 preprocessing review and validation tests. |
+| `reports/week-04-martha (1).md` | Martha's Week 4 report on a calculation/integration example. |
+| `reports/week-04-monica.md` | Monica's Week 4 integration and test verification report. |
+| `reports/week-04-ngor ahok ayuen.md` | Ngor Ahok's Week 4 SVM implementation and test notes. |
+| `reports/week-04-rachaelaloro.md` | Rachael's Week 4 scaler review and test notes. |
+| `reports/week-04-vivian.md` | Vivian's Week 4 formula checks, test summary, and outstanding work. |
+| `reports/reports/dataset_format.md` | The sample CSV columns, labels, and CSV-loader test reference. |
+| `reports/reports/requirements-checklist.md` | A short list of project requirements. |
+| `reports/reports/week-03-test-review.md` | An earlier test review with expected calculations and gaps noted at the time. |
+| `reports/reports/reports/requiements-checklist.md` | A historical detailed requirements/status checklist. |
+| `reports/reports/reports/week-03-test-review.md` | A nested Week 3 test review with expected calculations and test gaps. |
+| `reports/reports/reports/reports/requirements3-checklist.md` | Another historical requirements checklist with contributor and status notes. |
