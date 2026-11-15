@@ -174,3 +174,15 @@ dataset supplied to `trainSvm`.
   train and use the linear SVM.
 - `EvaluationMetrics` and `evaluateModel` in `edusvm/evaluation.hpp`:
   calculate classification metrics separately from model training.
+
+## Book references and concepts
+
+These books provide background for concepts demonstrated by EduSVM. They are
+references to the underlying ideas; the project implementation is in the
+listed source files.
+
+| Book | Concepts used in EduSVM | Where they appear in this project |
+|---|---|---|
+| Stroustrup, B. *The C++ Programming Language*, 4th ed., Addison-Wesley Professional, 2013. | Classes and encapsulation organize data and behavior; inheritance and virtual functions let related classes share an interface. | `Preprocessor` and its derived classes in `include/edusvm/preprocessor_base.hpp` and `include/edusvm/preprocessor_strategies.hpp`; runtime calls in `examples/example_oop.cpp` and `tests/test_oop.cpp`; private fitted values in `Scaler`. |
+| Han, J., Kamber, M., and Pei, J. *Data Mining: Concepts and Techniques*, 3rd ed., Morgan Kaufmann, 2011. | Data preprocessing and feature normalization prepare numeric input for analysis. | Dataset checks in `src/dataset.cpp` and min-max normalization in `src/scaler.cpp`; `crossValidateSvm` fits scaling on each training fold in `src/svm.cpp`. |
+| James, G., Witten, D., Hastie, T., and Tibshirani, R. *An Introduction to Statistical Learning: with Applications in R*, 2nd ed., Springer, 2021. | Support-vector classification and validation on held-out data help assess how a classifier performs beyond its training rows. | Linear SVM training and support-vector identification in `src/svm.cpp`; fold evaluation in `src/evaluation.cpp`; the demo's cross-validation workflow in `main.cpp`. |
