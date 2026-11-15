@@ -94,11 +94,43 @@ the destination dataset on failure.
 
 ## Object-oriented design
 
-`Preprocessor` defines a common virtual `process` operation. Validation,
-scaling, and imputation classes implement that operation in their own way.
-`Scaler` keeps its fitted feature bounds inside the object. SVM training,
-prediction, and cross-validation use helper classes behind the public
-functions, keeping the library interface simple.
+In this project, `Preprocessor` is the base class for
+`ValidationPreprocessor`, `ScalingPreprocessor`, and
+`ImputationPreprocessor`. Each overrides `process` for a different dataset
+task. `examples/example_oop.cpp` and `tests/test_oop.cpp` call validation and
+scaling through `Preprocessor` pointers to show runtime polymorphism.
+`Scaler` stores the feature minimums and maximums learned from training data.
+The SVM implementation uses separate trainer, prediction, and cross-validation
+classes inside `src/svm.cpp`.
+
+## How EduSVM uses its files
+
+When `edusvm` starts, `main.cpp` reads the supplied CSV path, or defaults to
+`data/input/students.csv`. That file has `study_hours`, `attendance`, and
+`assignment_score` feature columns and a `label` column containing `-1` or
+`+1`. The program loads and validates the rows, then evaluates the classifier
+with stratified cross-validation and prints the pooled results.
+
+| Files | What the code does and why the program uses it |
+|---|---|
+| `include/edusvm/dataset.hpp`, `src/dataset.cpp` | `Dataset` keeps each student's feature row alongside its label. `DatasetLoader::loadFromCSV` reads the sample CSV and rejects malformed rows, invalid labels, and non-finite features before `main.cpp` uses the data. |
+| `include/edusvm/preprocessor_base.hpp`, `include/edusvm/preprocessor.hpp`, `src/preprocessor.cpp` | Define the validation interface and `DatasetPreprocessor`. The demo calls `preprocessDataset` after CSV loading so invalid dataset shapes or labels stop before training. |
+| `include/edusvm/preprocessor_strategies.hpp`, `src/preprocessor_strategies.cpp` | Provide the validation and scaling strategies shown in `example_oop.cpp`, plus mean-imputation and drop-row strategies for callers with missing values. The demo's CSV loader itself rejects non-finite values. |
+| `include/edusvm/scaler.hpp`, `src/scaler.cpp` | `Scaler` learns column ranges from training rows. `crossValidateSvm` fits a new scaler per fold and applies it to that fold's validation rows, avoiding scaling from held-out data. |
+| `include/edusvm/loss.hpp`, `src/loss.cpp` | `calculateHingeLoss` calculates loss for one row and a supplied model. The calculation examples and loss tests use this helper; `main.cpp` reports cross-validation metrics instead. |
+| `include/edusvm/regularization.hpp`, `src/regularization.cpp` | `calculateL2Regularization` calculates a standalone weight penalty. The calculation examples and regularization tests demonstrate it; SVM training applies its penalty during optimization in `src/svm.cpp`. |
+| `include/edusvm/svm.hpp`, `src/svm.cpp` | Define `Hyperplane` and `TrainingOptions`; train models, calculate scores and margins, predict labels, and form cross-validation folds. `main.cpp` calls `crossValidateSvm` so each sample row is evaluated by a model trained without that row. |
+| `include/edusvm/evaluation.hpp`, `src/evaluation.cpp` | Define `EvaluationMetrics` and compare predictions with known `-1/+1` labels. Each fold uses `evaluateModel`; cross-validation combines the counts for the results printed by `main.cpp`. |
+| `tests/test_*.cpp` | Check the same student-dataset rules and model operations used by the app, including malformed CSV, missing features, imputation, scaling, training, predictions, and metrics. `test_oop.cpp` specifically checks virtual calls through `Preprocessor` pointers. |
+| `examples/*.cpp` | Demonstrate the library separately from the main demo: build and validate data, calculate scores/loss/penalty, call preprocessing strategies polymorphically, or run training and evaluation end to end. |
+
+### Build stages
+
+`CMakeLists.txt` compiles the eight implementation files in `src/` into
+`edusvm_lib`. It then compiles `main.cpp` and links the `edusvm` demo against
+that library. Each `tests/test_*.cpp` file is compiled and linked as its own
+test executable. CTest runs those tests and launches the demo once with
+`data/input/students.csv` as a smoke test.
 
 ## Classifier details and evaluation
 
@@ -142,3 +174,15 @@ dataset supplied to `trainSvm`.
   train and use the linear SVM.
 - `EvaluationMetrics` and `evaluateModel` in `edusvm/evaluation.hpp`:
   calculate classification metrics separately from model training.
+
+## Book references and concepts
+
+These books provide background for concepts demonstrated by EduSVM. They are
+references to the underlying ideas; the project implementation is in the
+listed source files.
+
+| Book | Concepts used in EduSVM | Where they appear in this project |
+|---|---|---|
+| Stroustrup, B. *The C++ Programming Language*, 4th ed., Addison-Wesley Professional, 2013. | Classes and encapsulation organize data and behavior; inheritance and virtual functions let related classes share an interface. | `Preprocessor` and its derived classes in `include/edusvm/preprocessor_base.hpp` and `include/edusvm/preprocessor_strategies.hpp`; runtime calls in `examples/example_oop.cpp` and `tests/test_oop.cpp`; private fitted values in `Scaler`. |
+| Han, J., Kamber, M., and Pei, J. *Data Mining: Concepts and Techniques*, 3rd ed., Morgan Kaufmann, 2011. | Data preprocessing and feature normalization prepare numeric input for analysis. | Dataset checks in `src/dataset.cpp` and min-max normalization in `src/scaler.cpp`; `crossValidateSvm` fits scaling on each training fold in `src/svm.cpp`. |
+| James, G., Witten, D., Hastie, T., and Tibshirani, R. *An Introduction to Statistical Learning: with Applications in R*, 2nd ed., Springer, 2021. | Support-vector classification and validation on held-out data help assess how a classifier performs beyond its training rows. | Linear SVM training and support-vector identification in `src/svm.cpp`; fold evaluation in `src/evaluation.cpp`; the demo's cross-validation workflow in `main.cpp`. |
